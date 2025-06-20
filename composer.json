@@ -1,0 +1,18 @@
+{
+	"name": "scottboms/kirby-applemusic",
+	"description": "Kirby Apple Music Field plugin.",
+	"type": "kirby-plugin",
+	"version": "1.0.0",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Scott Boms",
+			"email": "plugins@scottboms.com"
+		}
+	],
+  "require": {
+    "php": ">8.1.0 <8.4.0",
+    "getkirby/cms": "^4.0 || ^5.0",
+    "getkirby/composer-installer": "^1.1"
+  }
+}
