@@ -1,5 +1,7 @@
 # Apple Music Field Plugin for Kirby
 
+![Plugin Preview](src/assets/plugin-preview.png)
+
 This plugin adds an Apple Music Embed field type for Kirby including a live preview of the embed in the panel.
 
 ## Installation
