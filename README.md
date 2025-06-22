@@ -21,11 +21,17 @@ This plugin adds an Apple Music Embed field type for Kirby including a live prev
 
 ## Usage
 
+### Blueprints
+
 In a Page blueprint, add a new field with the type `applemusic`. Standard field attributes such as `label`, `required`, `help`, etc. can also be used to override the defaults.
 
     music:
       label: Apple Music Embed
       type: applemusic
+
+### Templates
+
+Based on the above example Blueprint, to render the field in your template you can use `<?= $page->music() ?>`. Note that any additional helper functions applied may break the embed. You do not need to use `->kt()` or `->kti()` for example.
 
 ## Compatibility
 
