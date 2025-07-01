@@ -19,11 +19,11 @@ if (Semver::satisfies(Kirby::version() ?? '0.0.0', '~4.0 || ~5.0') === false) {
 }
 
 Kirby::plugin(
-  name: 'scottboms/kirby-applemusic', 
+  name: 'scottboms/applemusic-field', 
   info: [
     'homepage' => 'https://github.com/scottboms/kirby-applemusic'
   ],
-  version: '1.0.2',
+  version: '1.0.3',
   extends: [
     'fields' => [
       'applemusic' => [
