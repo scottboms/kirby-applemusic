@@ -1,6 +1,6 @@
 # Apple Music Field Plugin for Kirby
 
-![Plugin Preview](src/assets/plugin-preview.png)
+![Plugin Preview](src/assets/apple-music-embed-plugin.jpg)
 
 This plugin adds an Apple Music Embed field type for Kirby including a live preview of the embed in the panel.
 
@@ -23,11 +23,12 @@ This plugin adds an Apple Music Embed field type for Kirby including a live prev
 
 ### Blueprints
 
-In a Page blueprint, add a new field with the type `applemusic`. Standard field attributes such as `label`, `required`, `help`, etc. can also be used to override the defaults.
+In a Page blueprint, add a new field with the type `applemusic`. Standard field attributes such as `label`, `required`, `help`, etc. can also be used to override the defaults. Use `emptyText` to change the default text displayed when the field is in an empty state.
 
     music:
       label: Apple Music Embed
       type: applemusic
+      emptyText: 'Click to paste Apple Music embed code'
 
 ### Templates
 

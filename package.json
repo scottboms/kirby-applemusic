@@ -2,7 +2,7 @@
   "name": "kirby-applemusic",
   "description": "Apple Music Embed Field",
   "author": "Scott Boms <plugins@scottboms.com>",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "kirby-plugin",
   "license": "MIT",
   "scripts": {

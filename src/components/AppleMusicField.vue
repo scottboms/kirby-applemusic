@@ -1,6 +1,11 @@
 <template>
   <k-field class="k-applemusic-field" v-bind="$props">
     <k-button icon="edit-line" size="xs" slot="options" variant="filled" @click="openDrawer">Edit...</k-button>
+    <div v-if="!hasContent" class="k-applemusic-empty">
+      <k-grid style="--columns: 1; gap: 0.5rem">
+        <k-empty :text="emptyText" icon="music" @click="openDrawer" />
+      </k-grid>
+    </div>
     <k-html-field-preview class="k-applemusic-preview" :value="value" />
   </k-field>
 </template>
@@ -9,7 +14,16 @@
 export default {
     extends: "k-field",
     props: {
-        value: String
+      value: String,
+      emptyText: {
+        type: String,
+        default: 'Add Apple Music embed...'
+      }  
+    },
+    computed: {
+      hasContent() {
+        return this.value && this.value.trim() !== '';
+      }
     },
     methods: {
         openDrawer() {
