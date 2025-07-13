@@ -23,11 +23,19 @@ Kirby::plugin(
   info: [
     'homepage' => 'https://github.com/scottboms/kirby-applemusic'
   ],
-  version: '1.0.4',
+  version: '1.1.0',
   license: 'MIT',
   extends: [
+    'options' => [
+      'format' => 'link' // fallback if not defined in config.php
+    ],
     'fields' => [
       'applemusic' => [
+        'computed' => [
+          'format' => function () {
+            return option('scottboms.applemusic.format', 'embed');
+          }
+        ],
         'props' => [
           'label' => function( $label = 'Apple Music Embed') {
             return $label;
@@ -37,6 +45,9 @@ Kirby::plugin(
           }
         ]
       ]
+    ],
+    'snippets' => [
+      'applemusic' => __DIR__ . '/snippets/applemusic.php'
     ]
   ]
 );
