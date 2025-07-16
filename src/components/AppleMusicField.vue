@@ -55,6 +55,55 @@ export default {
 			return link.replace(/^https:\/\/music\.apple\.com/, 'https://embed.music.apple.com');
 		},
 
+		handleSubmit(formData) {
+			const newValue = formData[this.name];
+
+			// format-specific validation
+			const isValid = (() => {
+				if (this.format === 'embed') {
+					return typeof newValue === 'string' &&
+						newValue.includes('<iframe') &&
+						newValue.includes('embed.music.apple.com');
+				}
+
+				if (this.format === 'link') {
+					return typeof newValue === 'string' &&
+						newValue.startsWith('https://music.apple.com/');
+				}
+
+				return false;
+			})();
+
+			if (!isValid) {
+				this.$panel.notification.error({
+					message:
+						this.format === 'link'
+							? 'Enter a valid link (e.g. https://music.apple.com/...)'
+							: 'Valid Apple Music embed not found.',
+					timeout: 4000
+				});
+				return;
+			}
+
+			Promise.resolve()
+				.then(() => {
+					this.$emit('input', newValue);
+					this.$emit('change', newValue);
+					this.closeDrawer();
+
+					this.$panel.notification.success({
+						message: 'Ok',
+						timeout: 4000
+					});
+				})
+				.catch(() => {
+					this.$panel.notification.error({
+						message: 'An error occurred',
+						timeout: 4000
+					});
+				});
+		},
+
 		openDrawer() {
 			const fieldConfig = {
 				label: this.format === 'link' ? 'Apple Music URL' : 'Embed Code',
@@ -99,26 +148,7 @@ export default {
 					}
 				},
 				on: {
-					submit: async (formData) => {
-						const newValue = formData[this.name];
-
-						// manual validation for embed format
-						if (this.format === 'embed') {
-							const isValid = typeof newValue === 'string' &&
-								newValue.includes('<iframe') &&
-								newValue.includes('embed.music.apple.com');
-
-							if (!isValid) {
-								this.$panel.notification.error('Apple Music embed not found.');
-								return;
-							}
-						}
-
-						//const newValue = formData[this.name];
-						this.$emit('input', newValue); // updates field value
-						this.$emit('change', newValue); // triggers page dirty state
-						this.closeDrawer();
-					}
+					submit: this.handleSubmit.bind(this)
 				}
 			});
 		},
