@@ -3,7 +3,7 @@
 		<k-button icon="edit-line" size="xs" slot="options" variant="filled" @click="openDrawer">Edit...</k-button>
 		<div v-if="!hasContent" class="k-applemusic-empty">
 			<k-grid style="--columns: 1; gap: 0.5rem">
-				<k-empty :text="emptyText" icon="music" @click="openDrawer" />
+				<k-empty :text="emptyText" icon="album" @click="openDrawer" />
 			</k-grid>
 		</div>
 		<div v-html="previewHtml" class="k-applemusic-preview" />
@@ -138,7 +138,7 @@ export default {
 			this.$panel.drawer.open({
 				component: 'k-form-drawer',
 				props: {
-					icon: 'music',
+					icon: 'album',
 					title: this.label || 'Apple Music Embed',
 					value: {
 						[this.name]: this.value

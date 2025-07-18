@@ -1,0 +1,8 @@
+name: Apple Music
+icon: album
+fields:
+	apple_music:
+		label: Embed
+		type: textarea
+		buttons: false
+		size: medium
