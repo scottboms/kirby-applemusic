@@ -19,12 +19,21 @@
 
 <script>
 export default {
+	created() {
+		console.log('[AppleMusicBlock] format:', this.format);
+		console.log('[AppleMusicBlock] value:', this.content?.apple_music);
+	},
+
 	computed: {
 		hasContent() {
 			return this.content?.apple_music?.length > 0;
 		},
 		format() {
-			return this.content?.format || 'embed';
+		  const raw = this.content?.format;
+		  if (typeof raw === 'string') return raw;
+		  if (raw === true) return 'link';   // assume true means 'link'
+		  if (raw === false) return 'embed'; // assume false means 'embed'
+		  return 'embed'; // fallback default
 		},
 		hasErrors() {
 			const value = this.content?.apple_music || '';
@@ -35,7 +44,7 @@ export default {
 			}
 
 			if (this.format === 'link') {
-				return !value.startsWith('https://music.apple.com/');
+				return !/^https:\/\/music\.apple\.com\/.+/.test(value);
 			}
 
 			return true;

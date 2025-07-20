@@ -10,6 +10,7 @@ fields:
 		label: Format
 		type: toggle
 		text:
-			- Embed
-			- Link
+			- embed
+			- link
+		default: "embed"
 		help: "Set format type to link or embed"
