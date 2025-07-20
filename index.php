@@ -23,7 +23,7 @@ Kirby::plugin(
 	info: [
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic'
 	],
-	version: '1.2.0',
+	version: '1.2.1',
 	license: 'MIT',
 	extends: [
 		'options' => [
