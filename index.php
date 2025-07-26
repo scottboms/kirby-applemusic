@@ -10,12 +10,14 @@
  * @license MIT
 **/
 
-use Composer\Semver\Semver;
-use Kirby\Cms\App as Kirby;
+use Kirby\Cms\App;
 
-// validate Kirby version
-if (Semver::satisfies(Kirby::version() ?? '0.0.0', '~4.0 || ~5.0') === false) {
-	throw new Exception('Apple Music Embed requires Kirby 4 or 5');
+// shamelessly borrowed from distantnative/retour-for-kirby
+if (
+	version_compare(App::version() ?? '0.0.0', '4.0.1', '<') === true ||
+	version_compare(App::version() ?? '0.0.0', '6.0.0', '>=') === true
+) {
+	throw new Exception('Apple Music Field requires Kirby v4 or v5');
 }
 
 Kirby::plugin(
@@ -23,7 +25,7 @@ Kirby::plugin(
 	info: [
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic'
 	],
-	version: '1.2.1',
+	version: '1.2.2',
 	license: 'MIT',
 	extends: [
 		'options' => [
