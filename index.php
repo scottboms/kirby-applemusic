@@ -23,10 +23,10 @@ if (
 Kirby::plugin(
 	name: 'scottboms/applemusic-field',
 	info: [
-		'homepage' => 'https://github.com/scottboms/kirby-applemusic'
+		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
+		'license'  => 'MIT'
 	],
-	version: '1.2.2',
-	license: 'MIT',
+	version: '1.2.3',
 	extends: [
 		'options' => [
 			'format' => 'link' // fallback if not defined in config.php
