@@ -26,7 +26,7 @@ Kirby::plugin(
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT'
 	],
-	version: '1.2.3',
+	version: '1.2.4',
 	extends: [
 		'options' => [
 			'format' => 'link' // fallback if not defined in config.php
