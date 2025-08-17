@@ -10,7 +10,7 @@
 						variant="filled"
 						theme="green-icon"
 						icon="open"
-						size="sm"
+						size="xs"
 						@click="redirectAuth">
 							{{ hasToken ? 'Re-authorize Apple Music' : 'Authorize Apple Music' }}
 					</k-button>
@@ -18,10 +18,20 @@
 					<k-button v-if="hasToken"
 						:disabled="busy"
 						variant="filled"
+						icon="reset-token"
+						text="Reset Token"
+						size="xs"
+						title="Reset the Cached Token"
+						@click="refreshDevToken"
+					/>
+
+					<k-button v-if="hasToken"
+						:disabled="busy"
+						variant="filled"
 						theme="red-icon"
 						icon="logout"
 						text="Disconnect"
-						size="sm"
+						size="xs"
 						title="Delete the Saved Token"
 						@click="disconnect"
 					/>
@@ -43,7 +53,7 @@
 			<!-- conditionally visible: only when token is present -->
 			<template v-if="hasToken">
 				<k-section label="Recently Played Tracks">
-					<k-button slot="options" size="xs" variant="filled" icon="refresh" @click="fetchRecent()">Refresh</k-button>
+					<k-button slot="options" size="xs" variant="filled" icon="refresh" @click="fetchRecent()" />
 
 					<k-box v-if="error" theme="negative">{{ error }}</k-box>
 					<k-box v-else-if="loading" icon="loader">Loading…</k-box>
@@ -77,12 +87,13 @@
 <script>
 export default {
 	name: 'Apple Music',
-	props: [
-		'appName',
-		'appBuild',
-		'hasToken',
-		'storefront'
-	],
+	props: {
+		appName: String,
+		appBuild: String,
+		hasToken: Boolean,
+		storefront: String,
+		songsLimit: { type: Number, default: 15 },
+	},
 
 	data() {
 		return {
@@ -91,10 +102,10 @@ export default {
 			items: [],
 			loading: false,
 			error: null,
-			limit: 15,
+			limit: this.songsLimit,
 			offset: 0,
-			language: "en-US",
-			storefrontInfo: null,
+			language: 'en-US',
+			storefrontInfo: null
 		};
 	},
 
@@ -150,8 +161,8 @@ export default {
 				if (link) {
 					base.options = [
 						{
-							icon: 'open',
-							text: 'Open',
+							icon: 'headphones',
+							text: 'Listen',
 							click: () => {
 								if (link) {
 									window.open(link, '_blank');
@@ -401,16 +412,61 @@ export default {
 				}, 60000);
 			} catch (e) {
 				console.error('popupAuth error:', e);
-				this.notify('error', 'Could not open popup.');
+				this.notify('error', 'Could not open popup');
 				this.busy = false;
 			}
 		},
 
+		// refresh token
+		async refreshDevToken() {
+			try {
+				const res = await fetch('/applemusic/dev-token/refresh', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'Accept': 'application/json' }
+				});
+
+				if (!res.ok) {
+					const t = await res.text();
+					throw new Error(`HTTP ${res.status}: ${t.slice(0, 200)}`);
+				}
+
+				const { token } = await res.json();
+				if (!token) throw new Error('No token returned');
+
+				// reconfigure musickit with the fresh token
+				const storefront = (this.storefront || 'auto').toLowerCase();
+				const cfg = {
+					developerToken: token,
+					app: { name: this.appName || 'KirbyMusicKit', build: this.appBuild || 'dev' }
+				};
+				if (storefront && storefront !== 'auto') cfg.storefrontId = storefront;
+				if (!window.MusicKit) throw new Error('MusicKit SDK not loaded');
+				window.MusicKit.configure(cfg);
+
+				// nudge instance to ensure it's ready
+				try { window.MusicKit.getInstance(); } catch {}
+				this.notify('success', 'Developer token refreshed');
+
+				// refresh dependent data so ui reflects the working state
+				if (this.hasToken) {
+					// if you show a storefront stat, reload it
+					this.fetchStorefront?.();
+					// and refresh the recent list
+					this.fetchRecent?.();
+				}
+			} catch (e) {
+				console.error('refreshDevToken failed:', e);
+				this.notify('error', `Could not refresh dev token: ${e.message || e}`);
+			}
+		},
+
+		// disconnect apple music, delete token
 		async disconnect() {
 			try {
 				if (!confirm('Disconnect Apple Music for this Panel user?')) return;
 				this.busy = true;
-				this.notify('info', 'Disconnecting…');
+				this.notify('info', 'Disconnecting...');
 
 				// log out of musickit in the browser
 				try {

@@ -29,15 +29,15 @@ if (
 	throw new Exception('Apple Music requires Kirby v4 or v5');
 }
 
-Kirby::plugin('scottboms/applemusic-field', [
+Kirby::plugin('scottboms/applemusic', [
 	'options' => [
 		'format' => 'link',
 		'teamId' => null, // e.g. 'ABCDE12345'
 		'keyId'  => null, // e.g. '1A2BC3DEFG'
 		'privateKey' => null, // contents of .p8 key -- do not share publicly
 		'storefront' => 'auto',
-		'songPerPage' => 10,
-		'songsCount' => 6,
+		'songsLimit' => 10,
+		'songsToShow' => 6,
 		'cacheTtl' => 120, // seconds to cache recent tracks response
 		'tokenTtl' => 3600,
 		'tokenCacheTtlMinutes' => 30,
@@ -76,22 +76,27 @@ Kirby::plugin('scottboms/applemusic-field', [
 	'areas' => [
 		'musickit' => [
 			'label' => 'Apple Music',
-			'icon'  => 'album',
+			'icon'  => 'album-filled',
 			'menu'  => true,
 			'link'  => 'applemusic',
 			'views' => [
 				[
 					'pattern' => 'applemusic',
 					'action'  => function () {
-						$plugin = kirby()->plugin('scottboms/applemusic-field');
+						$pluginId = 'scottboms/applemusic-field';
+						$plugin   = kirby()->plugin($pluginId);
+
+						// prefer the dedicated version() api; fall back to info()['version'] if needed
+						$appBuild = $plugin?->version() ?? ($plugin?->info()['version'] ?? 'dev');
 
 						return [
 							'component' => 'k-musickit-view',
 							'props' => [
 								'appName'    => 'KirbyMusicKit',
-								'appBuild'   => $plugin->info()['version'] ?? 'dev',
+								'appBuild'   => $appBuild,
 								'hasToken'   => Auth::readToken(kirby()->user()?->id()) ? true : false,
 								'storefront' => option('scottboms.applemusic.storefront', 'auto'),
+								'songsLimit' => option('scottboms.applemusic.songsLimit', 15),
 							]
 						];
 					}
@@ -111,8 +116,8 @@ Kirby::plugin('scottboms/applemusic-field', [
 	],
 
 	'info' => [
-		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'version'  => '2.0.0',
+		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],
 	]

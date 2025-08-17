@@ -69,7 +69,7 @@ class MusicKit
 	/**
 	 * fetch recently played tracks for the current user.
 	 * @param array $opts ['teamId','keyId','privateKey','tokenTtl'?]
-	 * @param array $params ['limit'=>15, 'offset'=>0, 'language'=>'en-US', 'storefront'=>'us']
+	 * @param array $params ['limit'=>10, 'offset'=>0, 'language'=>'en-US', 'storefront'=>'us']
 	 * @param string|null $userId
 	 * @return array{data:array, meta?:array, next?:string, prev?:string}|Response
 	*/

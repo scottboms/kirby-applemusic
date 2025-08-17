@@ -2,7 +2,7 @@
 
 use Scottboms\MusicKit\MusicKit;
 
-$limit    = (int)($limit ?? 12);
+$limit    = (int)($limit ?? option('scottboms.applemusic.songsToShow', 6));
 $language = $language ?? 'en-US';
 $cacheTtl = (int)($cacheTtl ?? 120);
 

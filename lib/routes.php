@@ -81,6 +81,24 @@ return [
 		}
 	],
 
+	// refresh dev token
+	[
+		'pattern' => 'applemusic/dev-token/refresh',
+		'method'  => 'POST',
+		'action'  => function () {
+			$opts = MusicKit::ensureOptions();
+			if ($opts instanceof Response) return $opts;
+
+			$origin  = kirby()->request()->header('Origin');
+			$headers = Auth::devTokenCorsHeaders($origin, (array)($opts['allowedOrigins'] ?? []));
+
+			// bust and mint a new dev token using the scoped cache key
+			$token = Auth::refreshDevToken($opts);
+
+			return new Response(json_encode(['token' => $token]), 'application/json', 200, $headers);
+		}
+	],
+
 	// delete token route
 	[
 		'pattern' => 'applemusic/delete-user-token',
@@ -111,7 +129,7 @@ return [
 		'action'  => function () {
 			$opts = MusicKit::opts();
 			$params = [
-				'limit'      => (int) (get('limit') ?? 15),
+				'limit'      => (int) (get('limit') ?? option('scottboms.applemusic.songsLimit', 15)),
 				'offset'     => (int) (get('offset') ?? 0),
 				'language'   => get('language')   ?: 'en-US',
 				'storefront' => get('storefront') ?: 'us',

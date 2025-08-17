@@ -127,14 +127,38 @@ class Auth
 	// cached developer token (mint if absent)
 	public static function devToken(array $opts): string
 	{
-		$cacheKey = MusicKit::cacheKey('dev_token');
-		if ($token = MusicKit::cache()->get($cacheKey)) {
+		// scoped by credentials and domain to avoid collisions
+		$team  = (string)($opts['teamId'] ?? 'noteam');
+		$keyId = (string)($opts['keyId']  ?? 'nokey');
+		$dom   = static::domainFolder();
+		$cacheKey = MusicKit::cacheKey("dev_token:{$team}:{$keyId}:{$dom}");
+
+		$cache = MusicKit::cache();
+		if ($token = $cache->get($cacheKey)) {
 			return $token;
 		}
+
+		// sign a fresh jwt
+		$ttl = max(300, (int)($opts['tokenTtl'] ?? 3600)); // >= 5 min
 		$jwt = static::mintDevToken($opts);
-		// keep a small buffer
-		MusicKit::cache()->set($cacheKey, $jwt, min((int)$opts['tokenTtl'] - 60, 3300));
+
+		// cache a bit shorter than 'exp' to avoid edge cases/clock skew
+		$buffer   = min(120, (int)round($ttl * 0.10)); // 10% or up to 120s
+		$cacheTtl = max(1, $ttl - $buffer);
+		$cache->set($cacheKey, $jwt, $cacheTtl);
 		return $jwt;
+	}
+
+	// refresh token
+	public static function refreshDevToken(array $opts): string
+	{
+		$team  = (string)($opts['teamId'] ?? 'noteam');
+		$keyId = (string)($opts['keyId']  ?? 'nokey');
+		$dom   = static::domainFolder();
+		$cacheKey = MusicKit::cacheKey("dev_token:{$team}:{$keyId}:{$dom}");
+
+		MusicKit::cache()->remove($cacheKey);
+		return static::devToken($opts);
 	}
 
 	// optional cors for dev-token endpoint
