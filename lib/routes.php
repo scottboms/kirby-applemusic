@@ -151,7 +151,7 @@ return [
 		'method'  => 'GET',
 		'action'  => function () {
 			$sf       = get('sf') ?? option('scottboms.applemusic.storefront') ?? 'auto';
-			$plugin   = kirby()->plugin('scottboms/applemusic-field');
+			$plugin   = kirby()->plugin('scottboms/applemusic');
 			$appName  = 'KirbyMusicKit';
 			$appBuild = $plugin->info()['version'] ?? 'dev';
 

@@ -83,7 +83,7 @@ Kirby::plugin('scottboms/applemusic', [
 				[
 					'pattern' => 'applemusic',
 					'action'  => function () {
-						$pluginId = 'scottboms/applemusic-field';
+						$pluginId = 'scottboms/applemusic';
 						$plugin   = kirby()->plugin($pluginId);
 
 						// prefer the dedicated version() api; fall back to info()['version'] if needed
