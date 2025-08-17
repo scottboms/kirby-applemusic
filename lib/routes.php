@@ -1,0 +1,144 @@
+<?php
+
+declare(strict_types=1);
+
+use Kirby\Http\Response;
+use Scottboms\MusicKit\MusicKit;
+use Scottboms\MusicKit\Auth;
+
+return [
+	// returns a developer token with cors + cache via Auth::devToken
+	[
+		'pattern' => 'applemusic/dev-token',
+		'method'  => 'GET',
+		'action'  => function () {
+			$opts = MusicKit::ensureOptions();
+			if ($opts instanceof Response) return $opts;
+
+			$origin  = kirby()->request()->header('Origin');
+			$headers = Auth::devTokenCorsHeaders($origin, (array)($opts['allowedOrigins'] ?? []));
+
+			$token = Auth::devToken($opts);
+			return new Response(json_encode(['token' => $token]), 'application/json', 200, $headers);
+		}
+	],
+
+	// store music-user-token
+	[
+		'pattern' => 'applemusic/store-user-token',
+		'method'  => 'POST',
+		'action'  => function () {
+			if (!$user = kirby()->user()) {
+				return Response::json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+			}
+
+			$req   = kirby()->request();
+			$token = null;
+
+			if (stripos($req->header('Content-Type') ?? '', 'application/json') !== false) {
+				$json = json_decode($req->body(), true);
+				$token = is_array($json) ? ($json['token'] ?? null) : null;
+			}
+			$token ??= $req->get('token');
+			$token ??= $req->header('Music-User-Token') ?? $req->header('X-Apple-Music-User-Token');
+			$token ??= get('token');
+
+			if (!is_string($token) || strlen($token) < 32) {
+				return Response::json(['status' => 'error', 'message' => 'Missing or invalid token'], 400);
+			}
+
+			if (!Auth::storeToken($token, $user->id())) {
+				return Response::json(['status' => 'error', 'message' => 'Failed to store token'], 500);
+			}
+
+			return Response::json(['status' => 'ok', 'path' => Auth::tokenPath($user->id())], 200);
+		}
+	],
+
+	// has token
+	[
+		'pattern' => 'applemusic/has-token',
+		'method'  => 'GET',
+		'action'  => fn () =>
+			Response::json(['hasToken' => (bool) (kirby()->user() ? Auth::readToken(kirby()->user()->id()) : false)], 200)
+	],
+
+	// debug: music-user-token status route
+	[
+		'pattern' => 'applemusic/token-status',
+		'method'  => 'GET',
+		'action'  => function () {
+			if (!$user = kirby()->user()) {
+				return Response::json(['ok' => false, 'reason' => 'unauthorized'], 401);
+			}
+			$token = Auth::readToken($user->id());
+			return Response::json([
+				'ok'       => (bool) $token,
+				'hasToken' => (bool) $token,
+				'cacheKey' => MusicKit::cacheKey('token:' . $user->id()),
+				'path'     => Auth::tokenPath($user->id())
+			], 200);
+		}
+	],
+
+	// delete token route
+	[
+		'pattern' => 'applemusic/delete-user-token',
+		'method'  => 'POST',
+		'action'  => function () {
+			if (!$user = kirby()->user()) {
+				return Response::json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+			}
+			if (!Auth::deleteToken($user->id())) {
+				return Response::json(['status' => 'error', 'message' => 'Failed to delete token'], 500);
+			}
+			return Response::json(['status' => 'ok'], 200);
+		}
+	],
+
+	// get storefront
+	[
+		'pattern' => 'applemusic/storefront',
+		'method'  => 'GET',
+		'action'  => fn () =>
+			MusicKit::storefront(MusicKit::opts(), get('language') ?: 'en-US'),
+	],
+
+	// get recent tracks from the api
+	[
+		'pattern' => 'applemusic/recent',
+		'method'  => 'GET',
+		'action'  => function () {
+			$opts = MusicKit::opts();
+			$params = [
+				'limit'      => (int) (get('limit') ?? 15),
+				'offset'     => (int) (get('offset') ?? 0),
+				'language'   => get('language')   ?: 'en-US',
+				'storefront' => get('storefront') ?: 'us',
+			];
+			return MusicKit::recentlyPlayed($opts, $params);
+		}
+	],
+
+	// storefront (delegates to MusicKit::storefront)
+	[
+		'pattern' => 'applemusic/applemusic',
+		'method'  => 'GET',
+		'action'  => fn () => MusicKit::storefront(MusicKit::opts(), get('language') ?: 'en-US'),
+	],
+
+	// apple music api auth route
+	[
+		'pattern' => 'applemusic/auth',
+		'method'  => 'GET',
+		'action'  => function () {
+			$sf       = get('sf') ?? option('scottboms.applemusic.storefront') ?? 'auto';
+			$plugin   = kirby()->plugin('scottboms/applemusic-field');
+			$appName  = 'KirbyMusicKit';
+			$appBuild = $plugin->info()['version'] ?? 'dev';
+
+			return Auth::renderAuthPage($sf, $appName, $appBuild);
+		}
+	],
+
+];

@@ -1,34 +1,48 @@
 {
-	"name": "scottboms/kirby-applemusic",
-	"description": "Kirby Apple Music Field plugin.",
-	"type": "kirby-plugin",
-	"homepage": "https://github.com/scottboms/kirby-applemusic",
-	"authors": [
-		{
-			"name": "Scott Boms",
-			"email": "plugins@scottboms.com",
-			"homepage": "https://scottboms.com"
-		}
-	],
-	"support": {
-		"docs": "https://github.com/scottboms/kirby-applemusic/blob/main/README.md",
-		"source": "https://github.com/scottboms/kirby-applemusic"
-	},
-	"license": "MIT",
-	"keywords": [
-		"kirby",
-		"kirby-cms",
-		"kirby-plugin",
-		"kirby4",
-		"kirby5",
-		"kirby5-plugin"
-	],
-	"require": {
-		"php": ">8.1.0 <8.4.0",
-		"getkirby/cms": "^4.0 || ^5.0",
-		"getkirby/composer-installer": "^1.1"
-	},
-	"extra": {
-		"installer-name": "kirby-applemusic"
-	}
+  "name": "scottboms/kirby-applemusic",
+  "description": "Apple Music plugin for Kirby",
+  "type": "kirby-plugin",
+  "homepage": "https://github.com/scottboms/kirby-applemusic",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Scott Boms",
+      "email": "plugins@scottboms.com",
+      "homepage": "https://scottboms.com"
+    }
+  ],
+  "support": {
+    "docs": "https://github.com/scottboms/kirby-applemusic/blob/main/README.md",
+    "source": "https://github.com/scottboms/kirby-applemusic"
+  },
+  "keywords": [
+    "kirby",
+    "kirby-cms",
+    "kirby-plugin",
+    "kirby4",
+    "kirby5",
+    "kirby5-plugin",
+    "applemusic",
+    "music",
+    "api"
+  ],
+  "require": {
+    "php": ">=8.1.0",
+    "getkirby/composer-installer": "^1.1",
+    "firebase/php-jwt": "^6.10"
+  },
+  "extra": {
+    "installer-name": "kirby-applemusic"
+  },
+  "autoload": {
+    "psr-4": {
+      "Scottboms\\MusicKit\\": "classes/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "allow-plugins": {
+      "getkirby/composer-installer": true
+    }
+  }
 }

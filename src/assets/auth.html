@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>Authorize Apple Music</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" defer></script>
+	<style>
+		body { font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:2rem }
+		button { padding:.6rem 1rem; border:1px solid #ddd; border-radius:.5rem; background:#fff; cursor:pointer }
+		#status { margin-top:1rem; white-space:pre-wrap }
+		small { color:#666 }
+	</style>
+</head>
+<body>
+	<h1>Authorize Apple Music</h1>
+	<p><small>Storefront: <code id="sf">{{sfLower}}</code></small></p>
+	<button id="connect" disabled>Connect</button>
+	<div id="status" aria-live="polite"></div>
+
+	<script>
+	const urlParams = new URLSearchParams(window.location.search);
+	const returnTo = urlParams.get('returnTo');
+	const statusBox = () => document.getElementById('status');
+
+	function log(...args) {
+		console.log(...args);
+		try {
+			const line = args.map(a => (a && typeof a === 'object') ? JSON.stringify(a, null, 2) : String(a)).join(' ');
+			statusBox().textContent += (line + '\n');
+		} catch {}
+	}
+	window.addEventListener('error', e => log('[window.error]', e.message || e));
+	window.addEventListener('unhandledrejection', e => log('[unhandledrejection]', e.reason || e));
+
+	function waitForMusicKit() {
+		return new Promise((resolve, reject) => {
+			if (window.MusicKit) return resolve();
+			let timedOut = false;
+			const to = setTimeout(() => { timedOut = true; reject(new Error('MusicKit failed to load (CSP/network)')); }, 8000);
+			window.addEventListener('musickitloaded', () => { if (!timedOut) { clearTimeout(to); resolve(); } }, { once: true });
+		});
+	}
+
+	async function getMK(retries = 6) {
+		for (let i = 0; i < retries; i++) {
+			const mk = window.MusicKit?.getInstance?.();
+			if (mk) return mk;
+			await new Promise(r => setTimeout(r, i ? 120 : 0));
+		}
+		throw new Error('MusicKit failed to initialize');
+	}
+
+	async function fetchDevToken() {
+		const dev = await fetch('/applemusic/dev-token', { credentials: 'same-origin' });
+		if (!dev.ok) throw new Error('dev-token ' + dev.status);
+		const j = await dev.json();
+		if (!j?.token) throw new Error('No dev token returned');
+		return j.token;
+	}
+
+	const withTimeout = (p, ms) => Promise.race([
+		p,
+		new Promise((_, rej) => setTimeout(() => rej(new Error('authorize timeout')), ms))
+	]);
+
+	let mkReady = null;
+	(async () => {
+		try {
+			await waitForMusicKit();
+			const DEV_TOKEN = await fetchDevToken();
+
+			const storefront = (document.getElementById('sf').textContent || '').trim().toLowerCase();
+			const cfg = {
+				developerToken: DEV_TOKEN,
+				app: { name: {{appNameJson}}, build: {{appBuildJson}} }
+			};
+			if (storefront && storefront !== 'auto') cfg.storefrontId = storefront;
+
+			window.MusicKit.configure(cfg);
+			const mk = await getMK();
+			mkReady = mk;
+			document.getElementById('connect').disabled = false;
+		} catch (e) {
+			log('Prewarm failed:', e?.message || String(e));
+		}
+	})();
+
+	document.getElementById('connect').addEventListener('click', async () => {
+		try {
+			statusBox().textContent = '';
+			if (!mkReady) throw new Error('MusicKit not ready (prewarm failed)');
+			const mk = mkReady;
+
+			let mut;
+			try {
+				mut = await withTimeout(mk.authorize(), 30000);
+			} catch (e) {
+				log('authorize() threw:', { name: e?.name, code: e?.code, domain: e?.domain, message: e?.message });
+				throw e;
+			}
+			if (!mut) throw new Error('No Music-User-Token returned');
+
+			const resp = await fetch('/applemusic/store-user-token', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'same-origin',
+				body: JSON.stringify({ token: mut })
+			});
+			let body = {};
+			try { body = await resp.json(); } catch {}
+			if (!resp.ok || body.status !== 'ok') {
+				log('Save failed:', { status: resp.status, body });
+				try { window.opener?.postMessage({ type:'musickit-token', ok:false, error:'save-failed', detail:{ status: resp.status, body } }, window.location.origin); } catch {}
+				return;
+			}
+
+			try {
+				(window.opener || window.parent)?.postMessage(
+					{ type:'musickit-token', ok:true, storefront: mk.storefrontId || 'auto', save: body },
+					window.location.origin
+				);
+			} catch {}
+
+			if (returnTo) {
+				const u = new URL(returnTo);
+				if (!u.searchParams.get('connected')) u.searchParams.set('connected', '1');
+				setTimeout(() => { window.location.assign(u.toString()); }, 600);
+			} else {
+				log('Success. Token saved.');
+			}
+		} catch (e) {
+			log('Fatal error:', e?.message || String(e));
+			if (/Unauthorized/i.test(String(e))) {
+				log('Hint: Ensure storefront matches Apple ID country, clear Apple cookies, and try again.');
+			}
+			try { (window.opener || window.parent)?.postMessage({ type:'musickit-token', ok:false, error: String(e) }, window.location.origin); } catch {}
+		}
+	});
+	</script>
+</body>
+</html>
