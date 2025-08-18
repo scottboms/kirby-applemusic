@@ -1,8 +1,9 @@
-# Apple Music Embed Plugin for Kirby
+# Apple Music for Kirby
 
-![Plugin Preview](src/assets/apple-music-embed-plugin.jpg)
+![Plugin Preview](src/assets/apple-music-plugin.jpg)
 
-Adds Apple Music Embed field and block types for Kirby including a live preview of the embed in the panel for each.
+Adds Apple Music Embed field and block types for Kirby including a live preview of the embed in the panel for each. Version 2.0.0 introduces an optional Panel Area that integrates with the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/) (requires a paid [Apple Developer account](https://developer.apple.com)) to display recently played songs using an authenticated Apple Music account, as well as providing quick access to get a song's URL or embed code. Recently played songs can also be exposed to templates using a provided snippet.
+
 
 ## Installation
 
@@ -23,15 +24,73 @@ git submodule add https://github.com/scottboms/kirby-applemusic.git site/plugins
 1. [Download](https://github.com/scottboms/kirby-applemusic/archive/master.zip) the contents of this repository as Zip file.
 2. Rename the extracted folder to `kirby-applemusic` and copy it into the `site/plugins/` directory in your Kirby project.
 
-## Configuration
 
-Version 1.1.0 adds an optional configuration setting which allows using either a link or embed code format in the field. If using the `link` format, the preview does the work of dynamically converting to show a live preview in the panel.
-    
+## Configuration Options
+
+An optional configuration setting to override the default format for the field.
+
+| Property                      | Default | Req? | Description                                    |
+|-------------------------------|---------|------|------------------------------------------------|
+| scottboms.applemusic.format   | `link`  | No   | Sets the field type format - `link` or `embed` |
+
+**Example Use (in config/config.php):**
+
 ```php
 return [
-  scottboms.applemusic.format => 'embed | link'
+  scottboms.applemusic.format => 'embed'
 ]
 ```
+
+If using the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/), you will first need to generate the necessary keys and generate a token. Those values can then be added to your site config which will allow access from the Panel and also to your templates.
+
+**Required:**
+
+These private properties should be stored securely and ignored by version control systems. This can be done by creating an `env.php` file in the site/config folder and adding that to your gitignore rules.
+
+| Property        | Default | Req?  | Description                                                  |
+|-----------------|---------|-------|--------------------------------------------------------------|
+| teamId          | `null`  | Yes   | Available from Apple Developer account profile               |
+| keyId           | `null`  | Yes   | A generated Apple Music Media ID Key                         |
+| privateKey      | `null`  | Yes   | The raw contents of the generated .p8 token                  |
+| allowedOrigins  | `null`  | No   | An array of domains to allow for handling CORS responses     |
+
+**Example Use (in config/env.php):**
+
+```php
+return [
+  // private plugin config
+  'scottboms.applemusic' => [
+    'teamId' => 'ABCDE12345',
+    'keyId' => '1A2BC3DEFG',
+    'privateKey' => '-----BEGIN PRIVATE KEY-----///-----END PRIVATE KEY-----',
+    'allowedOrigins' => [
+      'https://example.com', 'https://yoursite.com'
+    ],
+  ],
+]
+```
+
+**Optional Config Overrides:**
+
+| Property        | Default | Req?  | Description                                                  |
+|-----------------|---------|-------|--------------------------------------------------------------|
+| tokenTtl        | `3600`  | No    | Length of time for the token to persist in seconds (5 min)   |
+| songsLimit      | `15`    | No    | The number of songs to show in the Panel Area                |
+| songsToShow     | `12`    | No    | The number of songs to show via the included snippet         |   
+
+**Example Use (in config/config.php):**
+
+```php
+return [
+  // applemusic plugin config
+  'scottboms.applemusic' => [
+    'tokenTtl' => 4800,
+    'songsLimit' => 10,
+    'songsToShow' => 6
+  ],
+]
+```
+
 
 ## Usage
 
@@ -64,14 +123,17 @@ If using the `link` format, a custom snippet is included to handle formatting th
 <?php snippet('applemusic', ['field' => $page->music()]) ?>
 ```
 
+
 ## Compatibility
 
 * Kirby 4.x
 * Kirby 5.x
 
+
 ## Disclaimer
 
 This plugin is provided "as is" with no guarantee. Use it at your own risk and always test before using it in a production environment. If you identify an issue, typo, etc, please [create a new issue](/issues/new) so I can investigate.
+
 
 ## License
 

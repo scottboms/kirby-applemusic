@@ -196,10 +196,10 @@ export default {
 		statReports() {
 			const reports = [
 				{
-					label: 'App Identifier',
+					label: 'Version ' + this.appBuild,
 					value: this.appName,
 					icon: 'layers',
-					info: 'Version ' + this.appBuild,
+					info: 'Build Info',
 					theme: 'info'
 				}
 			];
