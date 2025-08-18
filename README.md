@@ -123,6 +123,12 @@ If using the `link` format, a custom snippet is included to handle formatting th
 <?php snippet('applemusic', ['field' => $page->music()]) ?>
 ```
 
+If using the API, a snippet is included to handle displaying a customizable grid of recent songs.
+
+```php
+<?= snippet('recently-played', ['limit' => 6]) ?>
+```
+
 
 ## Compatibility
 
