@@ -27,7 +27,7 @@ git submodule add https://github.com/scottboms/kirby-applemusic.git site/plugins
 
 ## Configuration Options
 
-An optional configuration setting to override the default format for the field.
+An optional configuration setting can be set to override the default format for the field.
 
 | Property                      | Default | Req? | Description                                    |
 |-------------------------------|---------|------|------------------------------------------------|
@@ -41,11 +41,11 @@ return [
 ]
 ```
 
-If using the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/), you will first need to generate the necessary keys and generate a token. Those values can then be added to your site config which will allow access from the Panel and also to your templates.
+If using the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/), you will first need to generate the necessary keys and p8 token. Those values can then be added to your site config which will allow access from the Panel and also to your templates.
 
 **Required:**
 
-These private properties should be stored securely and ignored by version control systems. This can be done by creating an `env.php` file in the site/config folder and adding that to your gitignore rules.
+These private properties should be stored securely outside version control systems. This can be done by creating an `env.php` file in the site/config folder and adding that to your `.gitignore` rules.
 
 | Property        | Default | Req?  | Description                                                  |
 |-----------------|---------|-------|--------------------------------------------------------------|
@@ -96,7 +96,7 @@ return [
 
 ### Blueprints
 
-In a Page blueprint, add a new field with the type `applemusic`. Standard field attributes such as `label`, `required`, `help`, etc. can also be used to override the defaults. Use `emptyText` to change the default text displayed when the field is in an empty state.
+In a Page blueprint, add a new field with the type `applemusic.` Standard field attributes such as `label, required, help`, etc. can also be used to override the defaults. Use `emptyText` to change the default text displayed when the field is in an empty state.
 
 ```yml
   music:
