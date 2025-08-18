@@ -2,7 +2,7 @@
 
 ![Plugin Preview](src/assets/apple-music-plugin.jpg)
 
-Adds Apple Music Embed field and block types for Kirby including a live preview of the embed in the panel for each. Version 2.0.0 introduces an optional Panel Area that integrates with the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/) (requires a paid [Apple Developer account](https://developer.apple.com)) to display recently played songs using an authenticated Apple Music account, as well as providing quick access to get a song's URL or embed code. Recently played songs can also be exposed to templates using a provided snippet.
+Adds Field and Block types for Apple Music including a live preview of embeds in the panel. Version 2.0.0 introduces an optional Panel Area that integrates with the [Apple Music API](https://developer.apple.com/documentation/applemusicapi/) (requires a paid [Apple Developer account](https://developer.apple.com)) to display recently played songs using an authenticated Apple Music account. Results provide quick access to copy a song's URL and embed code. Recently played songs can also be exposed to templates using a provided snippet.
 
 
 ## Installation
