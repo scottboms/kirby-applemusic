@@ -193,12 +193,25 @@ class MusicKit
 			if (!empty($a['artwork']['url'])) {
 				$img = str_replace(['{w}', '{h}'], [240, 240], $a['artwork']['url']);
 			}
+
+			// convert millis -> MM:SS
+			$duration = null;
+			if (isset($a['durationInMillis'])) {
+				$seconds = (int) floor($a['durationInMillis'] / 1000);
+				$minutes = floor($seconds / 60);
+				$secs    = $seconds % 60;
+				$duration = sprintf('%d:%02d', $minutes, $secs);
+			}
+
 			return [
-				'id'     => $i['id'] ?? null,
-				'name'   => $a['name'] ?? '',
-				'artist' => $a['artistName'] ?? '',
-				'url'    => $a['url'] ?? null,
-				'image'  => $img,
+				'id'          => $i['id'] ?? null,
+				'name'        => $a['name'] ?? '',
+				'artist'      => $a['artistName'] ?? '',
+				'album'       => $a['albumName'] ?? '',
+				'duration'    => $duration ?? null,
+				'releaseDate' => $a['releaseDate'] ?? null,
+				'url'         => $a['url'] ?? null,
+				'image'       => $img,
 			];
 		}, $json['data'] ?? []);
 

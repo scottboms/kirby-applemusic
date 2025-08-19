@@ -29,6 +29,7 @@ $error  = $result['error'];
 							</figure>
 						<?php endif; ?>
 						<span class="am-title"><?= html($t['name']) ?></span>
+						<span class="am-subtitle"><?= html($t['album']) ?></span>
 						<span class="am-sub"><?= html($t['artist']) ?></span>
 					</a>
 				</li>
