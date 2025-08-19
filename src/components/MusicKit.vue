@@ -5,6 +5,17 @@
 				{{ headerTitle }}
 
 				<k-button-group slot="buttons">
+					<k-button
+						variant="filled"
+						theme="blue-icon"
+						icon="document"
+						size="xs"
+						link="https://github.com/scottboms/kirby-applemusic/blob/main/README.md"
+						target="_blank"
+						responsive="true"
+						text="Setup Guide"
+					/>
+
 					<k-button v-if="!hasToken"
 						:disabled="busy"
 						variant="filled"
@@ -38,8 +49,8 @@
 				</k-button-group>
 			</k-header>
 
-			<k-box v-if="!hasToken" theme="info" style="margin-bottom: .5rem" icon="info">
-				Connect your Apple Music account to see recently played tracks and more.
+			<k-box v-if="!hasToken" theme="positive" style="margin-bottom: .5rem" icon="settings">
+				Your configuration is ready to connect to your Apple Music account.
 			</k-box>
 
 			<k-section>

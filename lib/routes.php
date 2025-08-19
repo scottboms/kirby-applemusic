@@ -7,6 +7,36 @@ use Scottboms\MusicKit\MusicKit;
 use Scottboms\MusicKit\Auth;
 
 return [
+	// configuration status checks
+	[
+		'pattern' => 'applemusic/config-status',
+		'method'  => 'GET',
+		'action'  => function () {
+			$opts = [
+				'teamId'     => option('scottboms.applemusic.teamId'),
+				'keyId'      => option('scottboms.applemusic.keyId'),
+				'privateKey' => option('scottboms.applemusic.privateKey'),
+			];
+
+			$cfg = Auth::configStatus($opts);
+			if (!is_array($cfg)) {
+				$cfg = [
+					'ok'      => (bool)$cfg,
+					'status'  => $cfg ? 'ok' : 'unconfigured',
+					'missing' => [],
+					'errors'  => [],
+				];
+			}
+
+			// enrich the payload if helpful to the ui
+			return \Kirby\Http\Response::json([
+				'status'  => $cfg['status'],
+				'missing' => $cfg['missing'],
+				'errors'  => $cfg['errors'],
+			], 200);
+		}
+	],
+
 	// returns a developer token with cors + cache via Auth::devToken
 	[
 		'pattern' => 'applemusic/dev-token',

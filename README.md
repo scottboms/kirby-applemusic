@@ -91,6 +91,20 @@ return [
 ]
 ```
 
+**Cache Settings:**
+
+Turn on file caching for the plugin using:
+
+```php
+return [
+	cache => [
+		'scottboms.applemusic' => [
+			'type' => 'file',
+		]
+	],
+]
+```
+
 
 ## Usage
 

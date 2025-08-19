@@ -10,6 +10,68 @@ use Kirby\Http\Response;
 
 class Auth
 {
+	public static function musickit_config_status(): array
+	{
+		$opts = [
+			'teamId'     => option('scottboms.applemusic.teamId'),
+			'keyId'      => option('scottboms.applemusic.keyId'),
+			'privateKey' => option('scottboms.applemusic.privateKey'),
+		];
+		return self::configStatus($opts);
+	}
+
+	// config status check
+	public static function configStatus(array $opts): array
+	{
+			$missing = [];
+			foreach (['teamId','keyId','privateKey'] as $k) {
+				if (empty($opts[$k])) $missing[] = $k;
+			}
+
+			$errors = [];
+			// validate formats if present (don't "warn" on empty)
+			if (!empty($opts['teamId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['teamId'])) {
+				$errors[] = 'teamId must be 10 uppercase letters/numbers';
+			}
+			if (!empty($opts['keyId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['keyId'])) {
+				$errors[] = 'keyId must be 10 uppercase letters/numbers';
+			}
+			if (!empty($opts['privateKey']) && \strpos($opts['privateKey'], 'BEGIN PRIVATE KEY') === false) {
+				$errors[] = 'privateKey must be a valid PEM string';
+			}
+
+			$ok = empty($missing) && empty($errors);
+			$status = $ok ? 'ok' : (!empty($missing) ? 'unconfigured' : 'invalid');
+
+			return [
+				'ok'      => $ok,
+				'status'  => $status,  // ok | unconfigured | invalid
+				'missing' => $missing, // e.g. teamId | keyId
+				'errors'  => $errors,  // value format issues only
+			];
+	}
+
+	// configuration status convenience wrapper
+	public static function isConfigured(array $opts): bool
+	{
+		return static::configStatus($opts)['ok'] === true;
+	}
+
+	// validate required apple keys in options; return response on error, null on success
+	public static function validateOptions(array $opts): ?Response
+	{
+		$status = static::configStatus($opts);
+		if ($status['ok']) return null;
+
+		// keep endpoints strict, but respond with structured payload
+		return Response::json([
+			'error'   => 'Invalid configuration',
+			'status'  => $status['status'], // unconfigured | invalid
+			'missing' => $status['missing'],
+			'errors'  => $status['errors'],
+		], 400);
+	}
+
 	// minutes to keep cached user token (default: 30 days)
 	public static function tokenCacheTtl(): int
 	{
@@ -96,20 +158,6 @@ class Auth
 
 		MusicKit::cache()->remove($key);
 		return F::exists($path) ? F::remove($path) : true;
-	}
-
-	// validate required apple keys in options; return response on error, null on success
-	public static function validateOptions(array $opts): ?Response
-	{
-		foreach (['teamId','keyId','privateKey'] as $k) {
-			if (empty($opts[$k])) return Response::json(['error' => "Missing option: {$k}"], 500);
-		}
-		if (\strpos($opts['privateKey'], 'BEGIN PRIVATE KEY') === false) {
-			return Response::json(['error' => 'Private key not in PEM format or not loaded'], 500);
-		}
-		if (!\preg_match('/^[A-Z0-9]{10}$/', $opts['teamId'])) return Response::json(['error' => 'teamId format'], 500);
-		if (!\preg_match('/^[A-Z0-9]{10}$/', $opts['keyId']))  return Response::json(['error' => 'keyId format'], 500);
-		return null;
 	}
 
 	// mint a developer jwt (throws on invalid inputs)

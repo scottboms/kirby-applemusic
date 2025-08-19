@@ -85,18 +85,20 @@ Kirby::plugin('scottboms/applemusic', [
 					'action'  => function () {
 						$pluginId = 'scottboms/applemusic';
 						$plugin   = kirby()->plugin($pluginId);
-
-						// prefer the dedicated version() api; fall back to info()['version'] if needed
 						$appBuild = $plugin?->version() ?? ($plugin?->info()['version'] ?? 'dev');
+						$status   = Auth::musickit_config_status();
 
 						return [
-							'component' => 'k-musickit-view',
+							'component' => $status['ok'] ? 'k-musickit-view' : 'k-musickit-config-view',
 							'props' => [
 								'appName'    => 'KirbyMusicKit',
 								'appBuild'   => $appBuild,
 								'hasToken'   => Auth::readToken(kirby()->user()?->id()) ? true : false,
 								'storefront' => option('scottboms.applemusic.storefront', 'auto'),
 								'songsLimit' => option('scottboms.applemusic.songsLimit', 15),
+								'status'     => $status['status'],
+								'missing'    => $status['missing'],
+								'errors'     => $status['errors'],
 							]
 						];
 					}
@@ -116,7 +118,7 @@ Kirby::plugin('scottboms/applemusic', [
 	],
 
 	'info' => [
-		'version'  => '2.0.0',
+		'version'  => '2.0.1',
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],
