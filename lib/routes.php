@@ -168,6 +168,22 @@ return [
 		}
 	],
 
+	// get details for an individual track from the api
+	[
+		'pattern' => 'applemusic/song/(:any)',
+		'method'  => 'GET',
+		'action'  => function (string $songId) {
+			$language = get('l', 'en-US');
+			// ensure options exist (no user token required for catalog lookups)
+			$opts = MusicKit::opts();
+			if ($err = Auth::validateOptions($opts)) {
+				return $err; // 4xx with structured json
+			}
+			$res = MusicKit::songDetails($songId, $language);
+			return $res;
+		}
+	],
+
 	// storefront (delegates to MusicKit::storefront)
 	[
 		'pattern' => 'applemusic/applemusic',

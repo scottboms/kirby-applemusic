@@ -102,7 +102,21 @@ Kirby::plugin('scottboms/applemusic', [
 							]
 						];
 					}
-				]
+				],
+
+				[
+					'pattern'   => 'applemusic/song/(:any)',
+					'action'  => function ($songId) {
+						return [
+							'component' => 'k-musickit-song-view',
+							'props'     => [
+								'songId'   => $songId,
+								'language' => option('panel.language', 'en-US')
+							]
+						];
+					}
+				],
+
 			]
 		]
 	],

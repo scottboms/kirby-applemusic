@@ -150,7 +150,8 @@ export default {
 		},
 		collectionItems() {
 			return (this.items || []).map((item) => {
-				const link = this.trackUrl(item);
+				const appleMusicUrl = this.trackUrl(item); // external Apple Music URL (may be null)
+				const isInline = typeof item.id === 'string' && item.id.startsWith('i.');
 
 				const base = {
 					id: item.id,
@@ -162,14 +163,14 @@ export default {
 						cover: true,
 						back: 'pattern'
 					},
-					link,
 					icon: 'music',
-					target: '_blank',
 					title: this.trackSubtitle(item),
+					// only add the panel link if it's not an inline ("i.") id
+					...(isInline ? {} : { link: 'applemusic/song/' + item.id })
 				};
 
 				// only add options if link is present
-				if (link) {
+				if (appleMusicUrl) {
 					base.options = [
 						{
 							icon: 'headphones',
