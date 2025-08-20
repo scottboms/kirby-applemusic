@@ -89,7 +89,7 @@ Kirby::plugin('scottboms/applemusic', [
 						$status   = Auth::musickit_config_status();
 
 						return [
-							'component' => $status['ok'] ? 'k-musickit-view' : 'k-musickit-config-view',
+							'component' => $status['ok'] ? 'k-musickit-history-view' : 'k-musickit-config-view',
 							'props' => [
 								'appName'    => 'KirbyMusicKit',
 								'appBuild'   => $appBuild,
@@ -118,7 +118,7 @@ Kirby::plugin('scottboms/applemusic', [
 	],
 
 	'info' => [
-		'version'  => '2.0.2',
+		'version'  => '2.1.0',
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],
