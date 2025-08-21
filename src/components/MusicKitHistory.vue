@@ -63,11 +63,34 @@
 
 			<!-- conditionally visible: only when token is present -->
 			<template v-if="hasToken">
+				<k-section>
+					<k-box icon="search" theme="white" style="margin-bottom: var(--spacing-1)">
+						<k-search-input
+	            :value="searchQuery"
+							:disabled="!hasToken"
+	            :placeholder="'Search Apple Music...'"
+	            @input="onSearchInput"
+	            @submit="performSearch"
+	          />
+					</k-box>
+
+					<k-box v-if="searching" icon="loader" style="--width: 100%">Searching...</k-box>
+
+					<k-items
+			      v-else-if="searchResults.length"
+			      :items="searchResultItems"
+			      layout="list"
+			      size="small"
+			    />
+
+					<k-box v-else-if="searchQuery && !searching" theme="none">No matches found</k-box>
+				</k-section>
+
 				<k-section label="Recently Played Tracks">
 					<k-button slot="options" size="xs" variant="filled" icon="refresh" @click="fetchRecent()" />
 
 					<k-box v-if="error" theme="negative">{{ error }}</k-box>
-					<k-box v-else-if="loading" icon="loader">Loading…</k-box>
+					<k-box v-else-if="loading" icon="loader">Loading...</k-box>
 
 					<div v-else>
 						<k-collection
@@ -96,6 +119,8 @@
 </template>
 
 <script>
+import { makeTrackOptions } from '../trackOptions';
+
 export default {
 	name: 'Apple Music',
 	props: {
@@ -116,7 +141,14 @@ export default {
 			limit: this.songsLimit,
 			offset: 0,
 			language: 'en-US',
-			storefrontInfo: null
+			storefrontInfo: null,
+			// search
+			searchQuery: '',
+			searchResults: [],
+			searching: false,
+			searchError: null,
+			searchLimit: 10,
+			_searchTimer: null
 		};
 	},
 
@@ -138,6 +170,12 @@ export default {
 				this.error = null;
 				this.loading = false;
 				this.storefrontInfo = null;
+
+				// clear search ui too
+				this.searchQuery = '';
+				this.searchResults = [];
+				this.searching = false;
+				this.searchError = null;
 			}
 		}
 	},
@@ -148,9 +186,44 @@ export default {
 			? 'Apple Music'
 			: 'Authorize Apple Music'
 		},
+
+		// map your searchResults into k-items
+		searchResultItems() {
+			const rawSf = (this.storefrontInfo?.id || this.storefront || 'us')
+				.toString()
+				.toLowerCase();
+			const storefront = rawSf === 'auto' ? 'us' : rawSf;
+
+			return (this.searchResults || []).map((r) => {
+				const base = {
+					id: r.id,
+					text: r.text,
+					info: r.info,
+					icon: 'music',
+					...(r.image
+						? { image: { src: r.image, ratio: '1/1', cover: true, back: 'pattern' } }
+						: {}),
+					...(r.link ? { link: r.link } : {})
+				};
+
+				const appleMusicUrl = r?.id
+					? `https://music.apple.com/${storefront}/song/${encodeURIComponent(r.id)}`
+					: null;
+
+				const opts = makeTrackOptions({
+					url: appleMusicUrl,
+					onCopy: (text, msg = 'Link copied to clipboard') => this.copyToClipboard(text, msg),
+					onEmbed: (url) => this.buildEmbedCode(url),
+					onError: (msg) => this.notify('error', msg)
+				});
+				if (opts.length) base.options = opts;
+				return base;
+			});
+		},
+
 		collectionItems() {
 			return (this.items || []).map((item) => {
-				const appleMusicUrl = this.trackUrl(item); // external Apple Music URL (may be null)
+				const appleMusicUrl = this.trackUrl(item); // external apple music url if present
 				const isInline = typeof item.id === 'string' && item.id.startsWith('i.');
 
 				const base = {
@@ -169,37 +242,15 @@ export default {
 					...(isInline ? {} : { link: 'applemusic/song/' + item.id })
 				};
 
-				// only add options if link is present
+				// only add options if appleMusicUrl is present
 				if (appleMusicUrl) {
-					base.options = [
-						{
-							icon: 'headphones',
-							text: 'Listen',
-							click: () => {
-								if (link) {
-									window.open(link, '_blank');
-								}
-							}
-						},
-						'-',
-						{
-							icon: 'url',
-							text: 'Copy Link',
-							click: () => this.copyToClipboard(link, 'Link copied to clipboard')
-						},
-						{
-							icon: 'code',
-							text: 'Embed Code',
-							click: () => {
-								const iframe = this.buildEmbedCode(link);
-								if (!iframe) {
-									this.notify('error', 'Could not create embed code for this link');
-									return;
-								}
-								this.copyToClipboard(iframe, 'Embed copied to clipboard')
-							}
-						}
-					];
+					const opts = makeTrackOptions({
+						url: appleMusicUrl, // external apple music url
+						onCopy: (text, msg = 'Link copied to clipboard') => this.copyToClipboard(text, msg),
+						onEmbed: (url) => this.buildEmbedCode(url),
+						onError: (msg) => this.notify('error', msg)
+					});
+					if (opts.length) base.options = opts;
 				}
 
 				return base;
@@ -279,6 +330,52 @@ export default {
 	},
 
 	methods: {
+		// search pple music catalog
+		onSearchInput(q) {
+			this.searchQuery = q || '';
+			clearTimeout(this._searchTimer);
+			if (!this.searchQuery.trim()) {
+				this.searchResults = [];
+				this.searchError = null;
+				return;
+			}
+
+			// set a reasonable timeout
+			this._searchTimer = setTimeout(() => this.performSearch(this.searchQuery), 400);
+		},
+
+		async performSearch(q) {
+			const term = (typeof q === 'string' ? q : this.searchQuery).trim();
+			if (!term) return;
+			try {
+				this.searching = true;
+				this.searchError = null;
+
+				const rawSf =
+					(this.storefrontInfo?.id || this.storefront || 'us').toString().toLowerCase();
+				const sf = rawSf === 'auto' ? 'us' : rawSf;
+
+				const qs = new URLSearchParams({
+					q: term,
+					limit: String(this.searchLimit),
+					language: this.language,
+					sf
+				}).toString();
+
+				const res = await fetch(`/applemusic/search?${qs}`, { credentials: 'same-origin' });
+				const data = await res.json();
+
+				if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+				this.searchResults = data.results;
+			} catch (e) {
+				this.searchResults = [];
+				this.searchError = e?.message || 'Search failed';
+				this.notify('error', this.searchError);
+			} finally {
+				this.searching = false;
+			}
+		},
+
 		// copy to clipboard
 		async copyToClipboard(text, successMsg = 'Copied') {
 			try {

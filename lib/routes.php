@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Kirby\Http\Response;
+use Kirby\Http\Remote;
+use Kirby\Toolkit\A;
 use Scottboms\MusicKit\MusicKit;
 use Scottboms\MusicKit\Auth;
 
@@ -202,6 +204,98 @@ return [
 			$appBuild = $plugin->info()['version'] ?? 'dev';
 
 			return Auth::renderAuthPage($sf, $appName, $appBuild);
+		}
+	],
+
+	// search
+	[
+	  'pattern' => 'applemusic/search',
+	  'method'  => 'GET',
+	  'action'  => function () {
+			$q        = trim((string) (get('q') ?? ''));
+			$limit    = max(1, min((int) (get('limit') ?? 10), 25));
+			$language = get('language') ?: 'en-US';
+			$sfRaw    = strtolower((string) (get('sf') ?? option('scottboms.applemusic.storefront') ?? 'us'));
+			$sf       = ($sfRaw === 'auto' || !preg_match('/^[a-z]{2}(?:-[A-Z]{2})?$/', $sfRaw)) ? 'us' : $sfRaw;
+
+			if ($q === '' || mb_strlen($q) < 2) {
+				return Response::json(['ok' => false, 'error' => 'Query must be at least 2 characters'], 400);
+			}
+
+			$opts = MusicKit::opts();
+			if ($err = Auth::validateOptions($opts)) {
+				return $err; // structured 4xx json
+			}
+
+			$devToken = Auth::devToken($opts);
+			if (!$devToken) {
+				return Response::json(['ok' => false, 'error' => 'Developer token is not configured'], 500);
+			}
+
+			$url = 'https://api.music.apple.com/v1/catalog/' . rawurlencode($sf) . '/search';
+			$qs  = http_build_query([
+				'term'  => $q,
+				'types' => 'songs',
+				'limit' => $limit,
+				'l'     => $language,
+			], '', '&', PHP_QUERY_RFC3986);
+
+			try {
+				$res = Remote::get($url . '?' . $qs, [
+					'headers' => [
+						'Authorization' => 'Bearer ' . $devToken,
+						'Accept'        => 'application/json',
+					],
+					'timeout' => 7,
+				]);
+
+				if ($res->code() < 200 || $res->code() >= 300) {
+					return Response::json(['ok' => false, 'error' => 'Apple Music search failed (HTTP ' . $res->code() . ')'], 502);
+				}
+
+				$json  = $res->json();
+				$items = A::get($json, 'results.songs.data', []);
+
+				$results = array_map(function ($track) {
+					$id    = A::get($track, 'id');
+					$attr  = A::get($track, 'attributes', []);
+					$name  = A::get($attr, 'name', 'Untitled');
+					$artist= A::get($attr, 'artistName', '');
+					$art   = A::get($attr, 'artwork', null);
+					$date  = A::get($attr, 'releaseDate', null);
+
+					$year = null;
+					if ($date) {
+						$ts = strtotime($date);
+						if ($ts !== false) {
+							$year = date('Y', $ts);
+						}
+					}
+
+					$thumb = null;
+					if (is_array($art) && !empty($art['url'])) {
+						$thumb = str_replace(['{w}', '{h}'], [60, 60], $art['url']);
+					}
+
+					return [
+						'id'    => $id,
+						'text'  => $name . ' - ' . $artist,
+						'info'  => $year,
+						'attr'  => $attr,
+						'image' => $thumb,
+						'link'  => 'applemusic/song/' . $id,
+					];
+				}, $items);
+
+				return Response::json([
+					'ok'      => true,
+					'results' => $results,
+					'count'   => count($results),
+				], 200);
+
+			} catch (\Throwable $e) {
+				return Response::json(['ok' => false, 'error' => 'Search error: ' . $e->getMessage()], 500);
+			}
 		}
 	],
 
