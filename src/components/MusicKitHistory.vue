@@ -65,23 +65,34 @@
 			<template v-if="hasToken">
 				<k-section>
 					<k-box icon="search" theme="white" style="margin-bottom: var(--spacing-1)">
-						<k-search-input
-	            :value="searchQuery"
+						<k-select-field
+							:value="searchType"
+							:options="searchTypeOptions"
 							:disabled="!hasToken"
-	            :placeholder="'Search Apple Music...'"
-	            @input="onSearchInput"
-	            @submit="performSearch"
-	          />
+							icon="angle-down"
+							size="tiny"
+							@input="onSearchTypeChange"
+							style="min-width: 9rem"
+						/>
+
+						<k-search-input
+							:value="searchQuery"
+							:disabled="!hasToken"
+							:placeholder="'Search Apple Music...'"
+							@input="onSearchInput"
+							@submit="performSearch"
+							style="min-width: 80%"
+						/>
 					</k-box>
 
 					<k-box v-if="searching" icon="loader" style="--width: 100%">Searching...</k-box>
 
 					<k-items
-			      v-else-if="searchResults.length"
-			      :items="searchResultItems"
-			      layout="list"
-			      size="small"
-			    />
+						v-else-if="searchResults.length"
+						:items="searchResultItems"
+						layout="list"
+						size="small"
+					/>
 
 					<k-box v-else-if="searchQuery && !searching" theme="none">No matches found</k-box>
 				</k-section>
@@ -144,6 +155,7 @@ export default {
 			storefrontInfo: null,
 			// search
 			searchQuery: '',
+			searchType: 'songs',
 			searchResults: [],
 			searching: false,
 			searchError: null,
@@ -195,30 +207,43 @@ export default {
 			const storefront = rawSf === 'auto' ? 'us' : rawSf;
 
 			return (this.searchResults || []).map((r) => {
+				const kind = (r.kind || this.searchType); // songs | albums
+				const pathSegment = (kind === 'albums' || kind === 'album') ? 'album' : 'song';
+
+				const appleMusicUrl = r?.id
+					? `https://music.apple.com/${storefront}/${pathSegment}/${encodeURIComponent(r.id)}`
+					: null;
+
 				const base = {
 					id: r.id,
 					text: r.text,
 					info: r.info,
-					icon: 'music',
+					icon: (pathSegment === 'album' ? 'album' : 'music'),
 					...(r.image
 						? { image: { src: r.image, ratio: '1/1', cover: true, back: 'pattern' } }
 						: {}),
-					...(r.link ? { link: r.link } : {})
+					...(r.link ? { link: r.link } : {}) // if backend already supplies a canonical link
 				};
 
-				const appleMusicUrl = r?.id
-					? `https://music.apple.com/${storefront}/song/${encodeURIComponent(r.id)}`
-					: null;
-
-				const opts = makeTrackOptions({
-					url: appleMusicUrl,
-					onCopy: (text, msg = 'Link copied to clipboard') => this.copyToClipboard(text, msg),
-					onEmbed: (url) => this.buildEmbedCode(url),
-					onError: (msg) => this.notify('error', msg)
-				});
-				if (opts.length) base.options = opts;
+				// add options only if we have a valid apple music url
+				if (appleMusicUrl) {
+					const opts = makeTrackOptions({
+						url: appleMusicUrl,
+						onCopy: (text, msg = 'Link copied to clipboard') => this.copyToClipboard(text, msg),
+						onEmbed: (url) => this.buildEmbedCode(url),
+						onError: (msg) => this.notify('error', msg)
+					});
+					if (opts.length) base.options = opts;
+				}
 				return base;
 			});
+		},
+
+		searchTypeOptions() {
+			return [
+				{ value: 'songs',  text: 'Songs'  },
+				{ value: 'albums', text: 'Albums' }
+			]
 		},
 
 		collectionItems() {
@@ -359,10 +384,18 @@ export default {
 					q: term,
 					limit: String(this.searchLimit),
 					language: this.language,
-					sf
+					sf,
+					type: this.searchType // songs | albums
 				}).toString();
 
-				const res = await fetch(`/applemusic/search?${qs}`, { credentials: 'same-origin' });
+				const endpoint = `/applemusic/search?${qs}`;
+
+				// split (alternative):
+				// const endpoint = this.searchType === 'albums'
+				//   ? `/applemusic/search-albums?${qs}`
+				//   : `/applemusic/search?${qs}`;
+
+				const res = await fetch(endpoint, { credentials: 'same-origin' });
 				const data = await res.json();
 
 				if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
@@ -374,6 +407,12 @@ export default {
 			} finally {
 				this.searching = false;
 			}
+		},
+		
+		onSearchTypeChange(next) {
+			this.searchType = next || 'songs';
+			// Re-run the search if there’s already a query
+			if (this.searchQuery?.trim()) this.performSearch();
 		},
 
 		// copy to clipboard

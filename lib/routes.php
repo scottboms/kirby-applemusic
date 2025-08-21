@@ -218,6 +218,12 @@ return [
 			$sfRaw    = strtolower((string) (get('sf') ?? option('scottboms.applemusic.storefront') ?? 'us'));
 			$sf       = ($sfRaw === 'auto' || !preg_match('/^[a-z]{2}(?:-[A-Z]{2})?$/', $sfRaw)) ? 'us' : $sfRaw;
 
+			// type param with default
+			$type = strtolower((string)(get('type') ?? 'songs'));
+			if (!in_array($type, ['songs', 'albums'], true)) {
+				$type = 'songs';
+			}
+
 			if ($q === '' || mb_strlen($q) < 2) {
 				return Response::json(['ok' => false, 'error' => 'Query must be at least 2 characters'], 400);
 			}
@@ -235,7 +241,7 @@ return [
 			$url = 'https://api.music.apple.com/v1/catalog/' . rawurlencode($sf) . '/search';
 			$qs  = http_build_query([
 				'term'  => $q,
-				'types' => 'songs',
+				'types' => $type, // songs | albums
 				'limit' => $limit,
 				'l'     => $language,
 			], '', '&', PHP_QUERY_RFC3986);
@@ -254,43 +260,69 @@ return [
 				}
 
 				$json  = $res->json();
-				$items = A::get($json, 'results.songs.data', []);
 
-				$results = array_map(function ($track) {
-					$id    = A::get($track, 'id');
-					$attr  = A::get($track, 'attributes', []);
-					$name  = A::get($attr, 'name', 'Untitled');
-					$artist= A::get($attr, 'artistName', '');
-					$art   = A::get($attr, 'artwork', null);
-					$date  = A::get($attr, 'releaseDate', null);
+				$artThumb = function (?array $art, int $size = 60): ?string {
+					if (!is_array($art) || empty($art['url'])) return null;
+					return str_replace(['{w}', '{h}'], [$size, $size], $art['url']);
+				};
 
+				$normalizeSong = function (array $track) use ($artThumb) {
+					$id   = A::get($track, 'id');
+					$attr = A::get($track, 'attributes', []);
+					$name = A::get($attr, 'name', 'Untitled');
+					$artist = A::get($attr, 'artistName', '');
+					$date = A::get($attr, 'releaseDate', null);
 					$year = null;
-					if ($date) {
-						$ts = strtotime($date);
-						if ($ts !== false) {
-							$year = date('Y', $ts);
-						}
-					}
-
-					$thumb = null;
-					if (is_array($art) && !empty($art['url'])) {
-						$thumb = str_replace(['{w}', '{h}'], [60, 60], $art['url']);
-					}
-
+					if ($date && ($ts = strtotime($date)) !== false) $year = date('Y', $ts);
 					return [
 						'id'    => $id,
 						'text'  => $name . ' - ' . $artist,
 						'info'  => $year,
 						'attr'  => $attr,
-						'image' => $thumb,
+						'image' => $artThumb(A::get($attr, 'artwork')),
 						'link'  => 'applemusic/song/' . $id,
+						'kind'  => 'songs',
 					];
-				}, $items);
+				};
+
+				$normalizeAlbum = function (array $album) use ($artThumb) {
+					$id   = A::get($album, 'id');
+					$attr = A::get($album, 'attributes', []);
+					$name = A::get($attr, 'name', 'Untitled');
+					$artist = A::get($attr, 'artistName', '');
+					$date = A::get($attr, 'releaseDate', null);
+					$year = null;
+					if ($date && ($ts = strtotime($date)) !== false) $year = date('Y', $ts);
+
+					return [
+						'id'    => $id,
+						'text'  => $name . ' — ' . $artist,
+						'info'  => $year,
+						'attr'  => $attr,
+						'image' => $artThumb(A::get($attr, 'artwork')),
+						// add a dedicated album-details route later
+						// 'link' => 'applemusic/album/' . $id,
+						'link'  => A::get($attr, 'url', null), // apple music canonical album url
+						'kind'  => 'albums',
+					];
+				};
+
+				// pick the correct type and normalizer
+				if ($type === 'albums') {
+					$items   = A::get($json, 'results.albums.data', []);
+					$results = array_map($normalizeAlbum, $items);
+				} else {
+					$items   = A::get($json, 'results.songs.data', []);
+					$results = array_map($normalizeSong, $items);
+				}
 
 				return Response::json([
-					'ok'      => true,
-					'results' => $results,
-					'count'   => count($results),
+					'ok'         => true,
+					'results'    => $results,
+					'count'      => count($results),
+					'type'       => $type,
+					'storefront' => $sf,
+					'language'   => $language,
 				], 200);
 
 			} catch (\Throwable $e) {
