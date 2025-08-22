@@ -350,20 +350,23 @@ class MusicKit
 		$totalDuration   = self::ms_to_mmss($totalDurationMs);
 
 		return Response::json([
-			'id'            => $id,
-			'name'          => $a['name'] ?? '',
-			'artistName'    => $a['artistName'] ?? '',
-			'genreNames'    => $a['genreNames'] ?? [],
-			'releaseDate'   => $releaseDate,
-			'releaseYear'   => $releaseYear,
-			'url'           => $url,
-			'image'         => $img,
-			'recordLabel'   => $a['recordLabel'],
-			'copyright'     => $a['copyright'],
-			'trackCount'    => $a['trackCount'],
-			'totalDuration' => $totalDuration,
-			'tracks'        => $tracks,
-			//'raw'         => $body, // optional: full response payload
+			'id'                  => $id,
+			'name'                => $a['name'] ?? '',
+			'artistName'          => $a['artistName'] ?? '',
+			'genreNames'          => $a['genreNames'] ?? [],
+			'isDigitalMaster'     => (bool)($a['isDigitalMaster'] ?? true),
+			'isMasteredForItunes' => (bool)($a['isMasteredForItunes'] ?? false),
+			'contentRating'       => $a['contentRating'] ?? '',
+			'releaseDate'         => $releaseDate,
+			'releaseYear'         => $releaseYear,
+			'url'                 => $url,
+			'image'               => $img,
+			'recordLabel'         => $a['recordLabel'],
+			'copyright'           => $a['copyright'],
+			'trackCount'          => $a['trackCount'],
+			'totalDuration'       => $totalDuration,
+			'tracks'              => $tracks,
+			//'raw'               => $body, // optional: full response payload
 		], 200);
 	}
 

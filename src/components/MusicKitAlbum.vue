@@ -25,6 +25,28 @@
 
 							<k-box v-if="album.recordLabel" icon="label" class="am-meta am-metaSmall">{{ album.recordLabel }}</k-box>
 							<k-box v-if="album.releaseDate || album.recordLabel" icon="calendar" class="am-meta am-metaSmall">Released on {{ album.releaseDate }}</k-box>
+
+							<div v-if="album?.digitalMasterSrc" v-html="dmBadge"></div>
+
+							<k-box v-if="digitalMasterSrc || masteredForItunesSrc" class="am-meta am-badges">
+								<k-image-frame
+									v-if="digitalMasterSrc"
+									:src="digitalMasterSrc"
+									alt="Digital Master"
+									ratio="auto"
+									class="am-dm"
+									style="--width:auto; width: 100px; height: 40px;"
+								  /><k-text v-if="digitalMasterSrc">Digital Master</k-text>
+
+								<k-image-frame
+									v-if="masteredForItunesSrc"
+									:src="masteredForItunesSrc"
+									alt="Mastered for iTunes"
+									ratio="auto"
+									class="am-mfi"
+									style="--width:auto; width: 20px; height: 20px;"
+								 /><k-text v-if="masteredForItunesSrc">Mastered for iTunes</k-text>
+							</k-box>
 						</div>
 					</k-box>
 
@@ -46,6 +68,9 @@
 </template>
 
 <script>
+import dmBadge from '../assets/img/apple-digital-masters.svg';
+import mfiBadge from '../assets/img/apple-lossless-audio.svg';
+
 export default {
 	name: 'Apple Music - Album Details',
 	props: {
@@ -74,6 +99,10 @@ export default {
 			if (!res.ok) throw new Error(`HTTP ${res.status}`)
 				const data = await res.json();
 				this.album = data;
+
+				// this.$nextTick(() => {
+				// 	console.log('[AlbumView] masteredForItunesSrc:', this.masteredForItunesSrc);
+				// });
 		} catch (e) {
 			this.err = e?.message || 'Failed to load album'
 		} finally {
@@ -96,6 +125,16 @@ export default {
 				text: { label: 'Track' },
 				info: { label: 'Duration', width: '1/8', align: 'right' }
 			};
+		},
+		digitalMasterSrc() {
+			return this.album?.isDigitalMaster 
+				? dmBadge 
+				: null;
+		},
+		masteredForItunesSrc() {
+			return this.album?.isMasteredForItunes 
+				? mfiBadge 
+				: null;
 		}
 	},
 
@@ -103,10 +142,22 @@ export default {
 		back() { this.$go('applemusic') }
 	},
 
+	watch: {
+		masteredForItunesSrc(newVal) {
+			// debug:
+			// console.log('[AlbumView] masteredForItunesSrc changed to:', newVal);
+		}
+	}
+
 }
 </script>
 
 <style>
+.am-mfi img, 
+.am-dm img {
+	fill: var(--color-gray-100);
+}
+
 .am-albumArtist {
 	font-size: var(--text-4xl);
 }
@@ -146,5 +197,12 @@ export default {
 .am-copyright {
 	margin-top: var(--spacing-4);
 	width: 50%;
+}
+
+.am-badges {
+	display: flex;
+	gap: var(--spacing-2);
+	align-items: center;
+	margin-top: var(--spacing-2);
 }
 </style>
