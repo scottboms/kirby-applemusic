@@ -117,6 +117,19 @@ Kirby::plugin('scottboms/applemusic', [
 					}
 				],
 
+				[
+					'pattern'   => 'applemusic/album/(:any)',
+					'action'  => function ($albumId) {
+						return [
+							'component' => 'k-musickit-album-view',
+							'props'     => [
+								'songId'   => $albumId,
+								'language' => option('panel.language', 'en-US')
+							]
+						];
+					}
+				],
+
 			]
 		]
 	],

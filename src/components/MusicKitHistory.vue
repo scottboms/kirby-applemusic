@@ -225,6 +225,11 @@ export default {
 					...(r.link ? { link: r.link } : {}) // if backend already supplies a canonical link
 				};
 
+				// use internal route for album results
+				if (pathSegment === 'album' && r.id) {
+					base.link = `applemusic/albums/${encodeURIComponent(r.id)}`;
+				}
+
 				// add options only if we have a valid apple music url
 				if (appleMusicUrl) {
 					const opts = makeTrackOptions({

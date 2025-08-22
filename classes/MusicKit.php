@@ -239,6 +239,94 @@ class MusicKit
 		], 200);
 	}
 
+	// get individual album details
+	public static function albumDetails(string $albumId, string $language = 'en-US'): Response
+	{
+		$opts = static::opts();
+		$dev  = Auth::devToken($opts);
+
+		// option > user's storefront (if available) > 'us'
+		$storefront = option('scottboms.applemusic.storefront');
+		if ($storefront === 'auto' || empty($storefront)) {
+			$sf = 'us';
+			$mut = Auth::readAnyToken(); // optional
+			if ($mut) {
+				$sfRes = static::appleGet('/v1/me/storefront', $dev, $mut, ['Accept-Language' => $language]);
+				$sfJson = json_decode($sfRes->body() ?? 'null', true);
+
+				if (is_array($sfJson) && !empty($sfJson['data'][0]['id'])) {
+					$sf = $sfJson['data'][0]['id'];
+				}
+			}
+			$storefront = $sf ?: 'us';
+		}
+
+		// call catalog: dev token only (no music-user-token necessary)
+		$resp = \Kirby\Http\Remote::get('https://api.music.apple.com/v1/catalog/' . rawurlencode($storefront) . '/albums/' . rawurlencode($albumId), [
+			'headers' => [
+				'Authorization'    => 'Bearer ' . $dev,
+				'Accept'           => 'application/json',
+				'Accept-Language'  => $language,
+			],
+			'timeout' => 10,
+		]);
+
+		$code = $resp->code();
+		$body = json_decode($resp->content() ?? 'null', true);
+
+		if ($code >= 400 || !is_array($body)) {
+			return Response::json([
+				'status'  => 'error',
+				'message' => 'Apple Music catalog error',
+				'code'    => $code,
+				'body'    => $body,
+			], $code ?: 500);
+		}
+
+		// normalization for component view
+		$it = $body['data'][0] ?? null;
+		$a  = $it['attributes'] ?? [];
+		$img = null;
+
+		if (!empty($a['artwork']['url'])) {
+			$img = str_replace(['{w}','{h}'], [600, 600], $a['artwork']['url']);
+		}
+		$seconds = isset($a['durationInMillis']) ? (int) floor($a['durationInMillis'] / 1000) : null;
+		$duration = is_int($seconds) ? sprintf('%d:%02d', floor($seconds/60), $seconds % 60) : null;
+
+		// releaseYear from releaseDate
+		$releaseDate = $a['releaseDate'] ?? null;
+		$releaseYear = null;
+		if ($releaseDate) {
+			$ts = strtotime($releaseDate);
+			if ($ts !== false) {
+				$releaseYear = date('Y', $ts);
+			}
+		}
+
+		$id = $it['id'] ?? null;
+		$url = $a['url'] ?? null;
+
+		// if the id starts with "i.", clear the url
+		if (is_string($id) && str_starts_with($id, 'i.')) {
+			$url = null;
+		}
+
+		return Response::json([
+			'id'           => $id,
+			'name'         => $a['name'] ?? '',
+			'artistName'   => $a['artistName'] ?? '',
+			'albumName'    => $a['albumName'] ?? '',
+			'genreNames'   => $a['genreNames'] ?? [],
+			'releaseDate'  => $releaseDate,
+			'releaseYear'  => $releaseYear,
+			'url'          => $url,
+			'duration'     => $duration,
+			'image'        => $img,
+			'raw'          => $body, // optional: full response payload
+		], 200);
+	}
+
 	/**
 	 * server-side helper for front-end:
 	 * fetches recently played for the shared token, cache it,
