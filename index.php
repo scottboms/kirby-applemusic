@@ -77,6 +77,9 @@ Kirby::plugin('scottboms/applemusic', [
 		'musickit' => [
 			'label' => 'Apple Music',
 			'icon'  => 'album-filled',
+			'breadcrumbLabel' => function () {
+				return 'Apple Music';
+			},
 			'menu'  => true,
 			'link'  => 'applemusic',
 			'views' => [
@@ -109,6 +112,11 @@ Kirby::plugin('scottboms/applemusic', [
 					'action'  => function ($songId) {
 						return [
 							'component' => 'k-musickit-song-view',
+							'breadcrumb' => function () {
+								return [
+									[ 'label' => 'Song' ]
+								];
+							},
 							'props'     => [
 								'songId'   => $songId,
 								'language' => option('panel.language', 'en-US')
@@ -122,8 +130,13 @@ Kirby::plugin('scottboms/applemusic', [
 					'action'  => function ($albumId) {
 						return [
 							'component' => 'k-musickit-album-view',
+							'breadcrumb' => function () {
+								return [
+									[ 'label' => 'Album' ]
+								];
+							},
 							'props'     => [
-								'songId'   => $albumId,
+								'albumId'   => $albumId,
 								'language' => option('panel.language', 'en-US')
 							]
 						];

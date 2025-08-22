@@ -172,7 +172,7 @@ class MusicKit
 		}
 
 		// call catalog: dev token only (no music-user-token necessary)
-		$resp = \Kirby\Http\Remote::get('https://api.music.apple.com/v1/catalog/' . rawurlencode($storefront) . '/songs/' . rawurlencode($songId), [
+		$resp = Remote::get('https://api.music.apple.com/v1/catalog/' . rawurlencode($storefront) . '/songs/' . rawurlencode($songId), [
 			'headers' => [
 				'Authorization'    => 'Bearer ' . $dev,
 				'Accept'           => 'application/json',
@@ -201,8 +201,10 @@ class MusicKit
 		if (!empty($a['artwork']['url'])) {
 			$img = str_replace(['{w}','{h}'], [600, 600], $a['artwork']['url']);
 		}
-		$seconds = isset($a['durationInMillis']) ? (int) floor($a['durationInMillis'] / 1000) : null;
-		$duration = is_int($seconds) ? sprintf('%d:%02d', floor($seconds/60), $seconds % 60) : null;
+
+		$duration = isset($a['durationInMillis'])
+			? self::ms_to_mmss((int)$a['durationInMillis'])
+			: null;
 
 		// releaseYear from releaseDate
 		$releaseDate = $a['releaseDate'] ?? null;
@@ -239,6 +241,22 @@ class MusicKit
 		], 200);
 	}
 
+	// helper: milliseconds to mm:ss
+	public static function ms_to_mmss(?int $ms, bool $forceHours = false): ?string
+	{
+		if ($ms === null) return null;
+		$total = (int) round($ms / 1000);
+		$h = intdiv($total, 3600);
+		$rem = $total % 3600;
+		$m = intdiv($total, 60);
+		$s = $total % 60;
+
+		if ($forceHours || $h > 0) {
+			return sprintf('%d:%02d:%02d', $h, $m, $s); // H:MM:SS
+		}
+		return sprintf('%d:%02d', $m, $s);
+	}
+
 	// get individual album details
 	public static function albumDetails(string $albumId, string $language = 'en-US'): Response
 	{
@@ -262,7 +280,7 @@ class MusicKit
 		}
 
 		// call catalog: dev token only (no music-user-token necessary)
-		$resp = \Kirby\Http\Remote::get('https://api.music.apple.com/v1/catalog/' . rawurlencode($storefront) . '/albums/' . rawurlencode($albumId), [
+		$resp = Remote::get('https://api.music.apple.com/v1/catalog/' . rawurlencode($storefront) . '/albums/' . rawurlencode($albumId), [
 			'headers' => [
 				'Authorization'    => 'Bearer ' . $dev,
 				'Accept'           => 'application/json',
@@ -291,6 +309,7 @@ class MusicKit
 		if (!empty($a['artwork']['url'])) {
 			$img = str_replace(['{w}','{h}'], [600, 600], $a['artwork']['url']);
 		}
+
 		$seconds = isset($a['durationInMillis']) ? (int) floor($a['durationInMillis'] / 1000) : null;
 		$duration = is_int($seconds) ? sprintf('%d:%02d', floor($seconds/60), $seconds % 60) : null;
 
@@ -312,18 +331,39 @@ class MusicKit
 			$url = null;
 		}
 
+		// albums tracks data
+		$tracksRaw = $body['data'][0]['relationships']['tracks']['data'] ?? [];
+		$tracks = array_map(function ($t) {
+			$a = $t['attributes'] ?? [];
+			$ms = $a['durationInMillis'] ?? null;
+			return [
+				'id'         => $t['id'] ?? null,
+				'number'     => $a['trackNumber'] ?? null,
+				'name'       => $a['name'] ?? '',
+				'durationMs' => $ms,
+				'duration'   => self::ms_to_mmss($ms),
+			];
+		}, $tracksRaw);
+
+		// total duration
+		$totalDurationMs = array_sum(array_map(fn($t) => $t['durationMs'] ?? 0, $tracks));
+		$totalDuration   = self::ms_to_mmss($totalDurationMs);
+
 		return Response::json([
-			'id'           => $id,
-			'name'         => $a['name'] ?? '',
-			'artistName'   => $a['artistName'] ?? '',
-			'albumName'    => $a['albumName'] ?? '',
-			'genreNames'   => $a['genreNames'] ?? [],
-			'releaseDate'  => $releaseDate,
-			'releaseYear'  => $releaseYear,
-			'url'          => $url,
-			'duration'     => $duration,
-			'image'        => $img,
-			'raw'          => $body, // optional: full response payload
+			'id'            => $id,
+			'name'          => $a['name'] ?? '',
+			'artistName'    => $a['artistName'] ?? '',
+			'genreNames'    => $a['genreNames'] ?? [],
+			'releaseDate'   => $releaseDate,
+			'releaseYear'   => $releaseYear,
+			'url'           => $url,
+			'image'         => $img,
+			'recordLabel'   => $a['recordLabel'],
+			'copyright'     => $a['copyright'],
+			'trackCount'    => $a['trackCount'],
+			'totalDuration' => $totalDuration,
+			'tracks'        => $tracks,
+			//'raw'         => $body, // optional: full response payload
 		], 200);
 	}
 

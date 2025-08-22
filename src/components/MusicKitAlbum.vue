@@ -2,7 +2,7 @@
 	<k-panel-inside>
 		<k-view>
 			<k-header class="k-site-view-header">
-				{{ song?.name || 'Album' }}
+				{{ album?.name || 'Album' }}
 
 				<template #buttons>
 					<k-button v-if="album?.url" icon="headphones" :link="album.url" target="_blank" theme="blue-icon" variant="filled">Listen in Apple Music</k-button>
@@ -15,17 +15,32 @@
 			<k-section v-else>
 				<k-grid style="gap: 0; --columns: 12; background: var(--item-color-back); border-radius: var(--rounded); box-shadow: var(--shadow);">
 
-					<k-image-frame v-if="album.image" :src="song.image" :alt="album.name" ratio="1/1" back="pattern" cover="true" icon="music" style="border-radius: var(--rounded); --width: 1/2" />
+					<k-image-frame v-if="album.image" :src="album.image" :alt="album.name" ratio="1/1" back="pattern" cover="true" icon="music" style="border-radius: var(--rounded); --width: 1/2" />
 
 					<k-box style="--width: 1/2">
 						<div class="k-text" style="padding: var(--spacing-8)">
 							<p v-if="album.artistName" class="am-albumArtist">{{ album.artistName }}</p>
-							<p v-if="album.albumName" class="am-albumAlbum">{{ album.albumName }} ({{ album.releaseYear }})</p>
+							<p v-if="album.name" class="am-albumAlbum">{{ album.name }}</p>
+							<k-box v-if="album.totalDuration" icon="clock" class="am-meta am-small">{{ album.totalDuration }}</k-box>
+
+							<k-box v-if="album.recordLabel" icon="label" class="am-meta am-metaSmall">{{ album.recordLabel }}</k-box>
+							<k-box v-if="album.releaseDate || album.recordLabel" icon="calendar" class="am-meta am-metaSmall">Released on {{ album.releaseDate }}</k-box>
 						</div>
 					</k-box>
 
 				</k-grid>
+
+				<k-items
+				  v-if="album?.tracks?.length"
+				  layout="table"
+				  :items="albumTrackAsItems"
+				  :columns="albumItemsColumns"
+					style="border-radius: var(--rounded); margin-top: var(--spacing-1)"
+				/>
+
+				<k-box v-if="album.copyright" class="am-meta am-metaSmall am-copyright">{{ album.copyright }}</k-box>
 			</k-section>
+
 		</k-view>
 	</k-panel-inside>
 </template>
@@ -37,7 +52,7 @@ export default {
 		albumId: String,
 		language: String
 	},
-	
+
 	data() {
 		return {
 			loading: true,
@@ -45,10 +60,13 @@ export default {
 			album: null
 		};
 	},
-	
+
   async created() {
     try {
+			console.log('[AlbumView] albumId prop:', this.albumId);
 			const url = `/applemusic/album/${encodeURIComponent(this.albumId)}?l=${encodeURIComponent(this.language || 'en-US')}`;
+			console.log('[AlbumView] fetch URL:', url);
+
 			const res = await fetch(url, {
 				credentials: 'same-origin',
 				headers: { 'Accept': 'application/json' }
@@ -63,32 +81,50 @@ export default {
 		}
 	},
 
+	computed: {
+		albumTrackAsItems() {
+			return (this.album?.tracks || []).map(t => ({
+				// k-items friendly shape
+				text: t.name ?? '',
+				info: t.duration ?? '',
+				id: t.id ?? `${t.number}-${t.name}`
+			}));
+		},
+		albumItemsColumns() {
+			// k-items will display `text` & `info` — labels here just rename headers
+			return {
+				text: { label: 'Track' },
+				info: { label: 'Duration', width: '1/8', align: 'right' }
+			};
+		}
+	},
+
 	methods: {
 		back() { this.$go('applemusic') }
 	},
-	
+
 }
 </script>
 
 <style>
-.am-songArtist {
+.am-albumArtist {
 	font-size: var(--text-4xl);
 }
 
-.am-songAlbum {
+.am-albumAlbum {
 	font-size: var(--text-2xl);
 	margin-top: var(--spacing-2);
 }
 
-.am-songAlbum,
-.am-songDuration {
+.am-albumAlbum,
+.am-albumDuration {
 	color: light-dark(var(--color-gray-650), var(--color-gray-450));
 }
 
-.am-songDuration {margin-top: var(--spacing-2);}
+.am-albumDuration {margin-top: var(--spacing-2);}
 
-.am-songDuration,
-.am-songComposer {
+.am-albumDuration,
+.am-albumComposer {
 	font-size: var(--text-lg);
 }
 
@@ -105,5 +141,10 @@ export default {
 .am-meta {
 	color: light-dark(var(--color-gray-500), var(--color-gray-700));
 	margin-top: var(--spacing-2);
+}
+
+.am-copyright {
+	margin-top: var(--spacing-4);
+	width: 50%;
 }
 </style>

@@ -78,6 +78,7 @@
 						<k-search-input
 							:value="searchQuery"
 							:disabled="!hasToken"
+							:autofocus="true"
 							:placeholder="'Search Apple Music...'"
 							@input="onSearchInput"
 							@submit="performSearch"
@@ -201,36 +202,41 @@ export default {
 
 		// map your searchResults into k-items
 		searchResultItems() {
-			const rawSf = (this.storefrontInfo?.id || this.storefront || 'us')
-				.toString()
-				.toLowerCase();
+			const rawSf = (this.storefrontInfo?.id || this.storefront || 'us').toString().toLowerCase();
 			const storefront = rawSf === 'auto' ? 'us' : rawSf;
 
-			return (this.searchResults || []).map((r) => {
-				const kind = (r.kind || this.searchType); // songs | albums
-				const pathSegment = (kind === 'albums' || kind === 'album') ? 'album' : 'song';
+			// kirby exposes the panel base on $urls.panel, fallback to /panel
+			const panelBase = (this.$urls && this.$urls.panel) ? this.$urls.panel : '/panel';
 
-				const appleMusicUrl = r?.id
-					? `https://music.apple.com/${storefront}/${pathSegment}/${encodeURIComponent(r.id)}`
+			return (this.searchResults || []).map((r) => {
+				// destructure once so we don't accidentally read r.id later
+				const { id, kind, image, text, info, link } = r || {};
+				const isAlbum = (kind === 'albums' || kind === 'album');
+				const pathSegment = isAlbum ? 'album' : 'song';
+
+				// external apple music url used only for the options menu (copy/embed)
+				const appleMusicUrl = id
+					? `https://music.apple.com/${storefront}/${pathSegment}/${encodeURIComponent(id)}`
 					: null;
 
-				const base = {
-					id: r.id,
-					text: r.text,
-					info: r.info,
-					icon: (pathSegment === 'album' ? 'album' : 'music'),
-					...(r.image
-						? { image: { src: r.image, ratio: '1/1', cover: true, back: 'pattern' } }
-						: {}),
-					...(r.link ? { link: r.link } : {}) // if backend already supplies a canonical link
+				const item = {
+					id,
+					text,
+					info,
+					icon: isAlbum ? 'album' : 'music',
+					...(image ? { image: { src: image, ratio: '1/1', cover: true, back: 'pattern' } } : {})
 				};
 
-				// use internal route for album results
-				if (pathSegment === 'album' && r.id) {
-					base.link = `applemusic/album/${encodeURIComponent(r.id)}`;
+				if (link) {
+					// 1) prefer backend-provided link if present (eg, Panel::url(...))
+					item.link = link;
+				} else if (id) {
+					// 2) otherwise build a proper panel url (singular 'album' route)
+					item.link = `${panelBase}/applemusic/${pathSegment}/${encodeURIComponent(id)}`;
 				}
 
-				// add options only if we have a valid apple music url
+				// if no id, we intentionally don't set a link to avoid /undefined
+				// options menu only if we have a valid external apple music url
 				if (appleMusicUrl) {
 					const opts = makeTrackOptions({
 						url: appleMusicUrl,
@@ -238,12 +244,13 @@ export default {
 						onEmbed: (url) => this.buildEmbedCode(url),
 						onError: (msg) => this.notify('error', msg)
 					});
-					if (opts.length) base.options = opts;
-				}
-				return base;
+					if (opts.length) item.options = opts;
+				};
+				return item;
 			});
 		},
 
+		// populate the search types select component
 		searchTypeOptions() {
 			return [
 				{ value: 'songs',  text: 'Songs'  },
@@ -286,6 +293,7 @@ export default {
 				return base;
 			});
 		},
+
 		statReports() {
 			const reports = [
 				{
@@ -360,7 +368,7 @@ export default {
 	},
 
 	methods: {
-		// search pple music catalog
+		// search apple music catalog
 		onSearchInput(q) {
 			this.searchQuery = q || '';
 			clearTimeout(this._searchTimer);
@@ -413,10 +421,10 @@ export default {
 				this.searching = false;
 			}
 		},
-		
+
 		onSearchTypeChange(next) {
 			this.searchType = next || 'songs';
-			// Re-run the search if there’s already a query
+			// re-run the search if there's already a query
 			if (this.searchQuery?.trim()) this.performSearch();
 		},
 
