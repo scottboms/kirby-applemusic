@@ -2,7 +2,7 @@
 	<k-panel-inside>
 		<k-view>
 			<k-header class="k-site-view-header">
-				{{ song?.name || 'Song' }}
+				{{ song?.name || 'Album' }}
 
 				<template #buttons>
 					<k-button v-if="album?.url" icon="headphones" :link="album.url" target="_blank" theme="blue-icon" variant="filled">Listen in Apple Music</k-button>

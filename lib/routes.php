@@ -297,7 +297,7 @@ return [
 						'info'  => $year,
 						'attr'  => $attr,
 						'image' => $artThumb(A::get($attr, 'artwork')),
-						'link'  => 'applemusic/song/' . $id,
+						'link'  => Panel::url('applemusic/song/' . $id),
 						'kind'  => 'songs',
 					];
 				};
@@ -317,9 +317,8 @@ return [
 						'info'  => $year,
 						'attr'  => $attr,
 						'image' => $artThumb(A::get($attr, 'artwork')),
-						// add a dedicated album-details route later
-						// 'link' => 'applemusic/album/' . $id,
-						'link'  => A::get($attr, 'url', null), // apple music canonical album url
+						'link'  => Panel::url('applemusic/album/' . $id),
+						//'link'  => A::get($attr, 'url', null), // apple music canonical album url
 						'kind'  => 'albums',
 					];
 				};
