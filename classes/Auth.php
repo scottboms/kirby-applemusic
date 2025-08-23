@@ -10,6 +10,10 @@ use Kirby\Http\Response;
 
 class Auth
 {
+	/**
+	 * musickit config status
+	 * @return Array
+	 */
 	public static function musickit_config_status(): array
 	{
 		$opts = [
@@ -20,7 +24,11 @@ class Auth
 		return self::configStatus($opts);
 	}
 
-	// config status check
+
+	/**
+	 * config status
+	 * @return Array
+	 */
 	public static function configStatus(array $opts): array
 	{
 		$missing = [];
@@ -51,13 +59,22 @@ class Auth
 		];
 	}
 
-	// configuration status convenience wrapper
+
+	/**
+	 * configuration status convenience wrapper
+	 * @return Boolean
+	 */
 	public static function isConfigured(array $opts): bool
 	{
 		return static::configStatus($opts)['ok'] === true;
 	}
 
-	// validate required apple keys in options; return response on error, null on success
+
+	/**
+	 * validate required apple keys in options
+	 * return response on error, null on success
+	 * @return Json
+	 */
 	public static function validateOptions(array $opts): ?Response
 	{
 		$status = static::configStatus($opts);
@@ -72,14 +89,22 @@ class Auth
 		], 400);
 	}
 
-	// minutes to keep cached user token (default: 30 days)
+
+	/**
+	 * minutes to keep cached user token (default: 30 days)
+	 * @return Integer
+	 */
 	public static function tokenCacheTtl(): int
 	{
 		$minutes = (int) option('scottboms.applemusic.tokenCacheTtlMinutes', 60 * 24 * 30);
 		return max(1, $minutes);
 	}
 
-	// set domain host for cache
+
+	/**
+	 * set domain host for cache
+	 * @return String
+	 */
 	private static function domainFolder(): string
 	{
 		// use kirby request host if available
@@ -97,7 +122,11 @@ class Auth
 		return preg_replace('~[^a-z0-9\.\-]+~', '-', $host);
 	}
 
-	// path to persist the per-user music-user-token
+
+	/**
+	 * path to persist the per-user music-user-token
+	 * @return String
+	 */
 	public static function tokenPath(?string $userId = null): string
 	{
 		$uid = $userId ?? (kirby()->user()?->id() ?? 'site');
@@ -106,7 +135,11 @@ class Auth
 		return $root . '/' . $dom . '/scottboms/applemusic/' . $uid . '.json';
 	}
 
-	// store the music-user-token
+
+	/**
+	 * store the music-user-token
+	 * @return Boolean
+	 */
 	public static function storeToken(string $token, ?string $userId = null): bool
 	{
 		$path = static::tokenPath($userId);
@@ -125,7 +158,11 @@ class Auth
 		return $ok;
 	}
 
-	// read the music-user-token (cache -> file fallback)
+
+	/**
+	 * read the music-user-token (cache -> file fallback)
+	 * @return String
+	 */
 	public static function readToken(?string $userId = null): ?string
 	{
 		$uid   = $userId ?? (kirby()->user()?->id() ?? 'site');
@@ -149,7 +186,11 @@ class Auth
 		return null;
 	}
 
-	// delete cached token
+
+	/**
+	 * delete cached token
+	 * @return Boolean
+	 */
 	public static function deleteToken(?string $userId = null): bool
 	{
 		$uid  = $userId ?? (kirby()->user()?->id() ?? 'site');
@@ -160,7 +201,12 @@ class Auth
 		return F::exists($path) ? F::remove($path) : true;
 	}
 
-	// mint a developer jwt (throws on invalid inputs)
+
+	/**
+	 * mint a developer jwt (throws on invalid inputs)
+	 * uses jwt library
+	 * @return String
+	 */
 	public static function mintDevToken(array $opts): string
 	{
 		$now = \time();
@@ -172,7 +218,11 @@ class Auth
 		return JWT::encode($payload, $opts['privateKey'], 'ES256', $opts['keyId']);
 	}
 
-	// cached developer token (mint if absent)
+
+	/**
+	 * cached developer token (mint if absent)
+	 * @return String
+	 */
 	public static function devToken(array $opts): string
 	{
 		// scoped by credentials and domain to avoid collisions
@@ -197,7 +247,11 @@ class Auth
 		return $jwt;
 	}
 
-	// refresh token
+
+	/**
+	 * refresh dev token
+	 * @return String
+	 */
 	public static function refreshDevToken(array $opts): string
 	{
 		$team  = (string)($opts['teamId'] ?? 'noteam');
@@ -209,7 +263,10 @@ class Auth
 		return static::devToken($opts);
 	}
 
-	// optional cors for dev-token endpoint
+	/**
+	 * cors for dev-token endpoint
+	 * @return Array
+	 */
 	public static function devTokenCorsHeaders(?string $origin, array $allowedOrigins): array
 	{
 		$headers = ['Content-Type' => 'application/json'];
@@ -220,7 +277,11 @@ class Auth
 		return $headers;
 	}
 
-  // user must be logged into the panel
+
+  /**
+	 * user must be logged into the panel
+	 * @return String
+	 */
 	public static function ensurePanelUser()
 	{
 		if (!$user = kirby()->user()) {
@@ -229,7 +290,11 @@ class Auth
 		return $user;
 	}
 
-	// must have stored music-user-token
+
+	/**
+	 * must have stored music-user-token
+	 * @return String
+	 */
 	public static function ensureUserToken(string $userId)
 	{
 		$mut = static::readToken($userId);
@@ -239,10 +304,13 @@ class Auth
 		return $mut;
 	}
 
+
 	/**
 	 * render the apple music auth page
-	 * $sf can be 'auto' or a storefront code (e.g. 'us'); will be html-escaped.
-	 * $appName/$appBuild are injected as json for MusicKit.configure({ app: { name, build } }).
+	 * $sf can be 'auto' or a storefront code (eg. 'us')
+	 * will be html-escaped.
+	 * $appName/$appBuild are injected as json for MusicKit.configure({ app: { name, build } })
+	 * @return Json
 	 */
 	public static function renderAuthPage(string $sf, string $appName, string $appBuild): Response
 	{
@@ -267,13 +335,15 @@ class Auth
 		return new Response(trim($html), 'text/html');
 	}
 
+
 	/**
 	 * return any saved music-user-token
 	 * priority: configured default user id -> first token file found
+	 * @return String
 	 */
 	public static function readAnyToken(): ?string
 	{
-		// return valid token
+		// return a valid token
 		$dir = \dirname(static::tokenPath('any'));
 		if (!Dir::exists($dir)) {
 			return null;

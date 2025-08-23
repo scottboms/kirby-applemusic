@@ -9,7 +9,10 @@ use Scottboms\MusicKit\MusicKit;
 use Scottboms\MusicKit\Auth;
 
 return [
-	// configuration status checks
+  /**
+	 * ---------------------------------------------------------------------------
+	 * checks plugin configuration status
+	 */
 	[
 		'pattern' => 'applemusic/config-status',
 		'method'  => 'GET',
@@ -30,7 +33,6 @@ return [
 				];
 			}
 
-			// enrich the payload if helpful to the ui
 			return \Kirby\Http\Response::json([
 				'status'  => $cfg['status'],
 				'missing' => $cfg['missing'],
@@ -39,7 +41,11 @@ return [
 		}
 	],
 
-	// returns a developer token with cors + cache via Auth::devToken
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * returns a dev token with cors + cache via Auth::devToken
+	 */
 	[
 		'pattern' => 'applemusic/dev-token',
 		'method'  => 'GET',
@@ -55,7 +61,11 @@ return [
 		}
 	],
 
-	// store music-user-token
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * cache api music-user-token
+	 */
 	[
 		'pattern' => 'applemusic/store-user-token',
 		'method'  => 'POST',
@@ -87,33 +97,11 @@ return [
 		}
 	],
 
-	// has token
-	[
-		'pattern' => 'applemusic/has-token',
-		'method'  => 'GET',
-		'action'  => fn () =>
-			Response::json(['hasToken' => (bool) (kirby()->user() ? Auth::readToken(kirby()->user()->id()) : false)], 200)
-	],
 
-	// debug: music-user-token status route
-	[
-		'pattern' => 'applemusic/token-status',
-		'method'  => 'GET',
-		'action'  => function () {
-			if (!$user = kirby()->user()) {
-				return Response::json(['ok' => false, 'reason' => 'unauthorized'], 401);
-			}
-			$token = Auth::readToken($user->id());
-			return Response::json([
-				'ok'       => (bool) $token,
-				'hasToken' => (bool) $token,
-				'cacheKey' => MusicKit::cacheKey('token:' . $user->id()),
-				'path'     => Auth::tokenPath($user->id())
-			], 200);
-		}
-	],
-
-	// refresh dev token
+  /**
+	 * ---------------------------------------------------------------------------
+	 * refresh api dev token
+	 */
 	[
 		'pattern' => 'applemusic/dev-token/refresh',
 		'method'  => 'POST',
@@ -131,7 +119,11 @@ return [
 		}
 	],
 
-	// delete token route
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * delete cached api token
+	 */
 	[
 		'pattern' => 'applemusic/delete-user-token',
 		'method'  => 'POST',
@@ -146,7 +138,11 @@ return [
 		}
 	],
 
-	// get storefront
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * get storefront from the api
+	 */
 	[
 		'pattern' => 'applemusic/storefront',
 		'method'  => 'GET',
@@ -154,7 +150,29 @@ return [
 			MusicKit::storefront(MusicKit::opts(), get('language') ?: 'en-US'),
 	],
 
-	// get recent tracks from the api
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * apple music auth api
+	 */
+	[
+		'pattern' => 'applemusic/auth',
+		'method'  => 'GET',
+		'action'  => function () {
+			$sf       = get('sf') ?? option('scottboms.applemusic.storefront') ?? 'auto';
+			$plugin   = kirby()->plugin('scottboms/applemusic');
+			$appName  = 'KirbyMusicKit';
+			$appBuild = $plugin->info()['version'] ?? 'dev';
+
+			return Auth::renderAuthPage($sf, $appName, $appBuild);
+		}
+	],
+
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * get recent songs from the api
+	 */
 	[
 		'pattern' => 'applemusic/recent',
 		'method'  => 'GET',
@@ -170,7 +188,11 @@ return [
 		}
 	],
 
-	// get details for an individual track from the api
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * get song details from the api
+	 */
 	[
 		'pattern' => 'applemusic/song/(:any)',
 		'method'  => 'GET',
@@ -186,7 +208,11 @@ return [
 		}
 	],
 
-	// get details for an individual track from the api
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * get album details from the api
+	 */
 	[
 		'pattern' => 'applemusic/album/(:any)',
 		'method'  => 'GET',
@@ -203,28 +229,10 @@ return [
 	],
 
 
-	// storefront (delegates to MusicKit::storefront)
-	[
-		'pattern' => 'applemusic/applemusic',
-		'method'  => 'GET',
-		'action'  => fn () => MusicKit::storefront(MusicKit::opts(), get('language') ?: 'en-US'),
-	],
-
-	// apple music api auth route
-	[
-		'pattern' => 'applemusic/auth',
-		'method'  => 'GET',
-		'action'  => function () {
-			$sf       = get('sf') ?? option('scottboms.applemusic.storefront') ?? 'auto';
-			$plugin   = kirby()->plugin('scottboms/applemusic');
-			$appName  = 'KirbyMusicKit';
-			$appBuild = $plugin->info()['version'] ?? 'dev';
-
-			return Auth::renderAuthPage($sf, $appName, $appBuild);
-		}
-	],
-
-	// search
+  /**
+	 * ---------------------------------------------------------------------------
+	 * search apple music with the api
+	 */
 	[
 	  'pattern' => 'applemusic/search',
 	  'method'  => 'GET',
@@ -318,7 +326,6 @@ return [
 						'attr'  => $attr,
 						'image' => $artThumb(A::get($attr, 'artwork')),
 						'link'  => Panel::url('applemusic/album/' . $id),
-						//'link'  => A::get($attr, 'url', null), // apple music canonical album url
 						'kind'  => 'albums',
 					];
 				};

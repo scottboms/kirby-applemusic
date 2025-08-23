@@ -121,6 +121,7 @@ class MusicKit
 
 	/**
 	 * get user storefront
+	 * @return String
 	*/
 	public static function storefront(array $opts, string $language = 'en-US'): Response
 	{
@@ -140,9 +141,11 @@ class MusicKit
 		]);
 	}
 
+
 	/**
-	 * recently played tracks
+	 * get recently played tracks
 	 * keeps existing recentlyPlayedTracks() logic, normalizes the return to response
+	 * @return Array
 	 */
 	public static function recentlyPlayed(array $opts, array $params = []): Response
 	{
@@ -238,11 +241,15 @@ class MusicKit
 			'previewUrl'   => $a['previews'][0]['url'] ?? null,
 			'duration'     => $duration,
 			'image'        => $img,
-			'raw'          => $body, // optional: full response payload
+			//'raw'        => $body, // optional: full response payload
 		], 200);
 	}
 
-	// get individual album details
+
+	/**
+	 * get individual album details
+	 * @return Array
+	 */
 	public static function albumDetails(string $albumId, string $language = 'en-US'): Response
 	{
 		$opts = static::opts();
@@ -365,16 +372,17 @@ class MusicKit
 			'trackCount'           => $a['trackCount'],
 			'totalDuration'        => $totalDuration,
 			'tracks'               => $tracks,
-			//'raw'                  => $body, // optional: full response payload
+			//'raw'                => $body, // optional: full response payload
 		], 200);
 	}
 
+
 	/**
-	 * server-side helper for front-end:
-	 * fetches recently played for the shared token, cache it,
+	 * server-side helper for front-end snippet
+	 * fetches recently played using shared token, caches response,
 	 * and normalize to a render-friendly array
 	 *
-	 * @return Array {items: list<array{id?:string,name:string,artist:string,url:string|null,image:string|null}>, error:?string}
+	 * @return Array
 	 */
 	public static function recentForFrontend(int $limit = 12, string $language = 'en-US', int $cacheTtl = 120): array
 	{
@@ -414,21 +422,16 @@ class MusicKit
 				$img = str_replace(['{w}', '{h}'], [240, 240], $a['artwork']['url']);
 			}
 
-			// convert millis -> MM:SS
-			$duration = null;
-			if (isset($a['durationInMillis'])) {
-				$seconds = (int) floor($a['durationInMillis'] / 1000);
-				$minutes = floor($seconds / 60);
-				$secs    = $seconds % 60;
-				$duration = sprintf('%d:%02d', $minutes, $secs);
-			}
+			// convert millis -> mm:ss
+			$duration = $a['durationInMillis'] ?? null;
+			$songLength = Utils::format_mmss($duration);
 
 			return [
 				'id'          => $i['id'] ?? null,
 				'name'        => $a['name'] ?? '',
 				'artist'      => $a['artistName'] ?? '',
 				'album'       => $a['albumName'] ?? '',
-				'duration'    => $duration ?? null,
+				'duration'    => $songLength,
 				'releaseDate' => $a['releaseDate'] ?? null,
 				'url'         => $a['url'] ?? null,
 				'image'       => $img,

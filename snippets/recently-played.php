@@ -31,6 +31,7 @@ $error  = $result['error'];
 						<span class="am-title"><?= html($t['name']) ?></span>
 						<span class="am-subtitle"><?= html($t['album']) ?></span>
 						<span class="am-sub"><?= html($t['artist']) ?></span>
+						<span class="am-sub"><?= html($t['duration']) ?></span>
 					</a>
 				</li>
 			<?php endforeach; ?>
