@@ -52,6 +52,8 @@
 </template>
 
 <script>
+import { makeTrackOptions } from '../trackOptions';
+
 export default {
 	name: 'Apple Music - Album Details',
 	props: {
@@ -69,9 +71,9 @@ export default {
 
   async created() {
     try {
-			console.log('[AlbumView] albumId prop:', this.albumId);
+			// console.log('[AlbumView] albumId prop:', this.albumId);
 			const url = `/applemusic/album/${encodeURIComponent(this.albumId)}?l=${encodeURIComponent(this.language || 'en-US')}`;
-			console.log('[AlbumView] fetch URL:', url);
+			// console.log('[AlbumView] fetch URL:', url);
 
 			const res = await fetch(url, {
 				credentials: 'same-origin',
@@ -81,10 +83,9 @@ export default {
 				const data = await res.json();
 				this.album = data;
 
-				// debug:
-				console.log('[AlbumView] masteredForItunes', this.isMasteredForItunes);
-				console.log('[AlbumView] isAppleDigitalMaster from API:', this.album.isAppleDigitalMaster);
-				console.log('[AlbumView] full album object:', this.album);
+				// console.log('[AlbumView] masteredForItunes', this.isMasteredForItunes);
+				// console.log('[AlbumView] isAppleDigitalMaster from API:', this.album.isAppleDigitalMaster);
+				// console.log('[AlbumView] full album object:', this.album);
 
 		} catch (e) {
 			this.err = e?.message || 'Failed to load album'
@@ -95,18 +96,35 @@ export default {
 
 	computed: {
 		albumTrackAsItems() {
-			return (this.album?.tracks || []).map(t => ({
-				// k-items friendly shape
-				text: t.name ?? '',
-				info: t.duration ?? '',
-				id: t.id ?? `${t.number}-${t.name}`
-			}));
+			const tracks = this.album?.tracks || [];
+			return tracks.map(t => {
+				const item = {
+					// k-items row fields
+					text: t.name ?? '',
+					info: t.duration ?? '',
+					id:   t.id ?? `${t.number}-${t.name}`
+				};
+
+				// build options
+				const appleMusicUrl = t.url || null;
+				if (appleMusicUrl) {
+					const opts = makeTrackOptions({
+						url: appleMusicUrl,
+						onCopy: (text, msg = 'Link copied to clipboard') => this.copyToClipboard(text, msg),
+						onEmbed: (url) => this.buildEmbedCode(url),
+						onError: (msg) => this.notify('error', msg)
+					});
+					if (opts && opts.length) item.options = opts;
+				}
+				return item;
+			});
 		},
+
 		albumItemsColumns() {
 			// k-items will display `text` & `info` — labels here just rename headers
 			return {
 				text: { label: 'Track' },
-				info: { label: 'Duration', width: '1/8', align: 'right' }
+				info: { label: 'Duration', width: '1/8', align: 'right' },
 			};
 		},
 		isDigitalMaster() {
@@ -118,7 +136,44 @@ export default {
 	},
 
 	methods: {
-		back() { this.$go('applemusic') }
+		back() { this.$go('applemusic') },
+
+		async copyToClipboard(text, message = 'Copied') {
+			try {
+				await navigator.clipboard.writeText(text);
+				this.notify('success', message);
+			} catch (e) {
+				this.notify('error', 'Could not copy to clipboard');
+			}
+		},
+
+		buildEmbedCode(url) {
+			// adapt this to whatever your MusicHistory view returns
+			const code = `<iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="450" style="width:100%;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation" src="${url.replace('music.apple.com', 'embed.music.apple.com')}"></iframe>`;
+			this.copyToClipboard(code, 'Embed code copied');
+			return code;
+		},
+
+		// notifications
+		notify(type, message) {
+			// kirby panel 4/5 style
+			const p = this.$panel || this.$root?.$panel;
+			if (p?.notification) {
+				// try specific api first, then generic create()
+				if (typeof p.notification[type] === 'function') {
+					p.notification[type](message);
+					return;
+				}
+				if (typeof p.notification.create === 'function') {
+					p.notification.create({ message, type }); // type: success|info|warning|error
+					return;
+				}
+			}
+
+			// last-resort fallback
+			console[type === 'error' ? 'error' : 'log'](`[${type}] ${message}`);
+		},
+
 	},
 }
 </script>

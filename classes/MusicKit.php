@@ -339,6 +339,7 @@ class MusicKit
 				'name'       => $a['name'] ?? '',
 				'durationMs' => $ms,
 				'duration'   => Utils::format_mmss($ms),
+				'url'        => $a['url'] ?? null,
 			];
 		}, $tracksRaw);
 
@@ -364,7 +365,7 @@ class MusicKit
 			'trackCount'           => $a['trackCount'],
 			'totalDuration'        => $totalDuration,
 			'tracks'               => $tracks,
-			'raw'                  => $body, // optional: full response payload
+			//'raw'                  => $body, // optional: full response payload
 		], 200);
 	}
 
