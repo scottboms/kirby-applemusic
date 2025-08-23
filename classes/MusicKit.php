@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Scottboms\MusicKit;
 
 use Scottboms\MusicKit\Auth;
+use Scottboms\MusicKit\Utils;
 use Kirby\Http\Response;
 use Kirby\Http\Remote;
 
@@ -203,7 +204,7 @@ class MusicKit
 		}
 
 		$duration = isset($a['durationInMillis'])
-			? self::ms_to_mmss((int)$a['durationInMillis'])
+			? Utils::format_mmss((int)$a['durationInMillis'])
 			: null;
 
 		// releaseYear from releaseDate
@@ -230,7 +231,7 @@ class MusicKit
 			'artistName'   => $a['artistName'] ?? '',
 			'albumName'    => $a['albumName'] ?? '',
 			'composerName' => $a['composerName'] ?? '',
-			'genreNames'   => $a['genreNames'] ?? [],
+			'genreName'    => Utils::firstGenre($a['genreNames'] ?? null),
 			'releaseDate'  => $releaseDate,
 			'releaseYear'  => $releaseYear,
 			'url'          => $url,
@@ -239,22 +240,6 @@ class MusicKit
 			'image'        => $img,
 			'raw'          => $body, // optional: full response payload
 		], 200);
-	}
-
-	// helper: milliseconds to mm:ss
-	public static function ms_to_mmss(?int $ms, bool $forceHours = false): ?string
-	{
-		if ($ms === null) return null;
-		$total = (int) round($ms / 1000);
-		$h = intdiv($total, 3600);
-		$rem = $total % 3600;
-		$m = intdiv($total, 60);
-		$s = $total % 60;
-
-		if ($forceHours || $h > 0) {
-			return sprintf('%d:%02d:%02d', $h, $m, $s); // H:MM:SS
-		}
-		return sprintf('%d:%02d', $m, $s);
 	}
 
 	// get individual album details
@@ -333,6 +318,18 @@ class MusicKit
 
 		// albums tracks data
 		$tracksRaw = $body['data'][0]['relationships']['tracks']['data'] ?? [];
+
+		// compute album-level "isDigitalMaster" based on any track
+		$albumIsDigitalMaster = false;
+		foreach ($tracksRaw as $t) {
+			$ta = $t['attributes'] ?? [];
+			if (!empty($ta['isAppleDigitalMaster'])) {
+				$albumIsDigitalMaster = true;
+				break;
+			}
+		}
+
+		// build normalized tracks list
 		$tracks = array_map(function ($t) {
 			$a = $t['attributes'] ?? [];
 			$ms = $a['durationInMillis'] ?? null;
@@ -341,32 +338,33 @@ class MusicKit
 				'number'     => $a['trackNumber'] ?? null,
 				'name'       => $a['name'] ?? '',
 				'durationMs' => $ms,
-				'duration'   => self::ms_to_mmss($ms),
+				'duration'   => Utils::format_mmss($ms),
 			];
 		}, $tracksRaw);
 
 		// total duration
 		$totalDurationMs = array_sum(array_map(fn($t) => $t['durationMs'] ?? 0, $tracks));
-		$totalDuration   = self::ms_to_mmss($totalDurationMs);
+		$totalDuration   = Utils::format_human($totalDurationMs);
 
 		return Response::json([
-			'id'                  => $id,
-			'name'                => $a['name'] ?? '',
-			'artistName'          => $a['artistName'] ?? '',
-			'genreNames'          => $a['genreNames'] ?? [],
-			'isDigitalMaster'     => (bool)($a['isDigitalMaster'] ?? true),
-			'isMasteredForItunes' => (bool)($a['isMasteredForItunes'] ?? false),
-			'contentRating'       => $a['contentRating'] ?? '',
-			'releaseDate'         => $releaseDate,
-			'releaseYear'         => $releaseYear,
-			'url'                 => $url,
-			'image'               => $img,
-			'recordLabel'         => $a['recordLabel'],
-			'copyright'           => $a['copyright'],
-			'trackCount'          => $a['trackCount'],
-			'totalDuration'       => $totalDuration,
-			'tracks'              => $tracks,
-			//'raw'               => $body, // optional: full response payload
+			'id'                   => $id,
+			'name'                 => $a['name'] ?? '',
+			'artistName'           => $a['artistName'] ?? '',
+			'genreName'            => Utils::firstGenre($a['genreNames'] ?? null),
+			'isMasteredForItunes'  => (bool)($a['isMasteredForItunes'] ?? false),
+			'isAppleDigitalMaster' => $albumIsDigitalMaster,
+			'contentRating'        => $a['contentRating'] ?? '',
+			'releaseDate'          => $releaseDate,
+			'releaseDateFormatted' => Utils::humanDate($releaseDate),
+			'releaseYear'          => $releaseYear,
+			'url'                  => $url,
+			'image'                => $img,
+			'recordLabel'          => $a['recordLabel'],
+			'copyright'            => $a['copyright'],
+			'trackCount'           => $a['trackCount'],
+			'totalDuration'        => $totalDuration,
+			'tracks'               => $tracks,
+			'raw'                  => $body, // optional: full response payload
 		], 200);
 	}
 
@@ -375,7 +373,7 @@ class MusicKit
 	 * fetches recently played for the shared token, cache it,
 	 * and normalize to a render-friendly array
 	 *
-	 * @return array{items: list<array{id?:string,name:string,artist:string,url:string|null,image:string|null}>, error:?string}
+	 * @return Array {items: list<array{id?:string,name:string,artist:string,url:string|null,image:string|null}>, error:?string}
 	 */
 	public static function recentForFrontend(int $limit = 12, string $language = 'en-US', int $cacheTtl = 120): array
 	{

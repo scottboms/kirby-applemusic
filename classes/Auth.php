@@ -23,32 +23,32 @@ class Auth
 	// config status check
 	public static function configStatus(array $opts): array
 	{
-			$missing = [];
-			foreach (['teamId','keyId','privateKey'] as $k) {
-				if (empty($opts[$k])) $missing[] = $k;
-			}
+		$missing = [];
+		foreach (['teamId','keyId','privateKey'] as $k) {
+			if (empty($opts[$k])) $missing[] = $k;
+		}
 
-			$errors = [];
-			// validate formats if present (don't "warn" on empty)
-			if (!empty($opts['teamId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['teamId'])) {
-				$errors[] = 'teamId must be 10 uppercase letters/numbers';
-			}
-			if (!empty($opts['keyId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['keyId'])) {
-				$errors[] = 'keyId must be 10 uppercase letters/numbers';
-			}
-			if (!empty($opts['privateKey']) && \strpos($opts['privateKey'], 'BEGIN PRIVATE KEY') === false) {
-				$errors[] = 'privateKey must be a valid PEM string';
-			}
+		$errors = [];
+		// validate formats if present (don't "warn" on empty)
+		if (!empty($opts['teamId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['teamId'])) {
+			$errors[] = 'teamId must be 10 uppercase letters/numbers';
+		}
+		if (!empty($opts['keyId']) && !\preg_match('/^[A-Z0-9]{10}$/', $opts['keyId'])) {
+			$errors[] = 'keyId must be 10 uppercase letters/numbers';
+		}
+		if (!empty($opts['privateKey']) && \strpos($opts['privateKey'], 'BEGIN PRIVATE KEY') === false) {
+			$errors[] = 'privateKey must be a valid PEM string';
+		}
 
-			$ok = empty($missing) && empty($errors);
-			$status = $ok ? 'ok' : (!empty($missing) ? 'unconfigured' : 'invalid');
+		$ok = empty($missing) && empty($errors);
+		$status = $ok ? 'ok' : (!empty($missing) ? 'unconfigured' : 'invalid');
 
-			return [
-				'ok'      => $ok,
-				'status'  => $status,  // ok | unconfigured | invalid
-				'missing' => $missing, // e.g. teamId | keyId
-				'errors'  => $errors,  // value format issues only
-			];
+		return [
+			'ok'      => $ok,
+			'status'  => $status,  // ok | unconfigured | invalid
+			'missing' => $missing, // e.g. teamId | keyId
+			'errors'  => $errors,  // value format issues only
+		];
 	}
 
 	// configuration status convenience wrapper

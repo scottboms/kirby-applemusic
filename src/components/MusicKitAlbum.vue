@@ -21,17 +21,18 @@
 						<div class="k-text" style="padding: var(--spacing-8)">
 							<p v-if="album.artistName" class="am-albumArtist">{{ album.artistName }}</p>
 							<p v-if="album.name" class="am-albumAlbum">{{ album.name }}</p>
-							<k-box v-if="album.totalDuration" icon="clock" class="am-meta am-small">{{ album.totalDuration }}</k-box>
 
-							<k-box v-if="album.recordLabel" icon="label" class="am-meta am-metaSmall">{{ album.recordLabel }}</k-box>
-							<k-box v-if="album.releaseDate || album.recordLabel" icon="calendar" class="am-meta am-metaSmall">Released on {{ album.releaseDate }}</k-box>
+							<div class="am-meta am-metaSmall am-metaInfo">
+								<span v-if="album.genreName">{{ album.genreName }}</span>
+								<span v-if="album.releaseYear">{{ album.releaseYear }}</span>
+								<k-box v-if="album.isMasteredForItunes" icon="high-res" class="am-mastered">Lossless</k-box>
+							</div>
 
-							<DigitalMasterBadge v-if="isDigitalMaster" />
-							<MadeForItunesBadge v-if="isMfi" />
-							
+							<p v-if="album.trackCount || album.totalDuration" class="am-meta am-small">{{ album.trackCount }} songs, {{ album.totalDuration }}</p>
+
+							<k-box v-if="album.isAppleDigitalMaster" icon="apple-digital-master" class="am-meta am-metaSmall">Apple Digital Master</k-box>
 						</div>
 					</k-box>
-
 				</k-grid>
 
 				<k-items
@@ -42,7 +43,8 @@
 					style="border-radius: var(--rounded); margin-top: var(--spacing-1)"
 				/>
 
-				<k-box v-if="album.copyright" class="am-meta am-metaSmall am-copyright">{{ album.copyright }}</k-box>
+				<k-box v-if="album.releaseDateFormatted" class="am-meta am-metaSmall am-copyright">{{ album.releaseDateFormatted }}</k-box>
+				<k-box v-if="album.copyright" class="am-meta am-metaSmall">{{ album.copyright }}</k-box>
 			</k-section>
 
 		</k-view>
@@ -50,15 +52,8 @@
 </template>
 
 <script>
-import DigitalMasterBadge from './DigitalMasterBadge.vue';
-import MasteredForItunesBadge from './MasteredForItunesBadge.vue';
-
 export default {
 	name: 'Apple Music - Album Details',
-	components: {
-		DigitalMasterBadge,
-		MasteredForItunesBadge
-	},
 	props: {
 		albumId: String,
 		language: String
@@ -86,9 +81,11 @@ export default {
 				const data = await res.json();
 				this.album = data;
 
-				// this.$nextTick(() => {
-				// 	console.log('[AlbumView] masteredForItunesSrc:', this.masteredForItunesSrc);
-				// });
+				// debug:
+				console.log('[AlbumView] masteredForItunes', this.isMasteredForItunes);
+				console.log('[AlbumView] isAppleDigitalMaster from API:', this.album.isAppleDigitalMaster);
+				console.log('[AlbumView] full album object:', this.album);
+
 		} catch (e) {
 			this.err = e?.message || 'Failed to load album'
 		} finally {
@@ -113,29 +110,21 @@ export default {
 			};
 		},
 		isDigitalMaster() {
-      return !!this.album?.isDigitalMaster;
+      return this.album?.isAppleDigitalMaster;
 		},
 		isMfi() {
-			return !!this.album?.isMasteredForItunes;
+			return this.album?.isMasteredForItunes;
 		}
 	},
 
 	methods: {
 		back() { this.$go('applemusic') }
 	},
-
-	watch: {
-		masteredForItunesSrc(newVal) {
-			// debug:
-			// console.log('[AlbumView] masteredForItunesSrc changed to:', newVal);
-		}
-	}
-
 }
 </script>
 
 <style>
-.am-mfi img, 
+.am-mfi img,
 .am-dm img {
 	fill: var(--color-gray-100);
 }
@@ -146,6 +135,7 @@ export default {
 
 .am-albumAlbum {
 	font-size: var(--text-2xl);
+	line-height: var(--height-sm);
 	margin-top: var(--spacing-2);
 }
 
@@ -161,11 +151,22 @@ export default {
 	font-size: var(--text-lg);
 }
 
-.am-audioPreview {
-	background: none;
-	margin: var(--spacing-4) 0;
-	width: 25%;
+.am-metaInfo {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: flex-start;
+	align-items: end;
+	flex: 0 1 auto;
+	gap: .1rem;
+	width: 100%;
 }
+
+.am-metaInfo > *:not(:last-child)::after {
+  content: "•";
+  margin: 0 0.25rem;
+}
+
+.am-mastered {width: auto;}
 
 .am-metaSmall {
 	font-size: var(--text-sm);

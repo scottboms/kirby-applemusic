@@ -20,6 +20,7 @@ use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
 use Scottboms\MusicKit\MusicKit;
 use Scottboms\MusicKit\Auth;
+use Scottboms\MusicKit\Utils;
 
 // shamelessly borrowed from distantnative/retour-for-kirby
 if (
