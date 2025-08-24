@@ -61,16 +61,6 @@ class Auth
 
 
 	/**
-	 * configuration status convenience wrapper
-	 * @return Boolean
-	 */
-	public static function isConfigured(array $opts): bool
-	{
-		return static::configStatus($opts)['ok'] === true;
-	}
-
-
-	/**
 	 * validate required apple keys in options
 	 * return response on error, null on success
 	 * @return Json

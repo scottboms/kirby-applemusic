@@ -52,7 +52,7 @@ These private properties should be stored securely outside version control syste
 | teamId          | `null`  | Yes   | Available from Apple Developer account profile               |
 | keyId           | `null`  | Yes   | A generated Apple Music Media ID Key                         |
 | privateKey      | `null`  | Yes   | The raw contents of the generated .p8 token                  |
-| allowedOrigins  | `null`  | No   | An array of domains to allow for handling CORS responses     |
+| allowedOrigins  | `null`  | No    | An array of domains to allow for handling CORS responses     |
 
 **Example Use (in config/env.php):**
 
@@ -72,11 +72,12 @@ return [
 
 **Optional Config Overrides:**
 
-| Property        | Default | Req?  | Description                                                  |
-|-----------------|---------|-------|--------------------------------------------------------------|
-| tokenTtl        | `3600`  | No    | Length of time for the token to persist in seconds (5 min)   |
-| songsLimit      | `15`    | No    | The number of songs to show in the Panel Area                |
-| songsToShow     | `12`    | No    | The number of songs to show via the included snippet         |   
+| Property             | Default | Req?  | Description                                             |
+|----------------------|---------|-------|---------------------------------------------------------|
+| tokenTtl             | `3600`  | No    | Length of time token persists in seconds (6 min)        |
+| tokenCacheTtlMinutes | `43200` | No    | Length of time for tokenCache to persist (30 days)      |
+| songsLimit           | `15`    | No    | The number of songs to show in the Panel Area           |
+| songsToShow          | `12`    | No    | The number of songs to show via the included snippet    |   
 
 **Example Use (in config/config.php):**
 

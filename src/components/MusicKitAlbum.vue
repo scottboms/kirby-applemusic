@@ -19,18 +19,18 @@
 
 					<k-box style="--width: 1/2">
 						<div class="k-text" style="padding: var(--spacing-8)">
-							<p v-if="album.artistName" class="am-albumArtist">{{ album.artistName }}</p>
-							<p v-if="album.name" class="am-albumAlbum">{{ album.name }}</p>
+							<p v-if="album.artistName" class="am-artist">{{ album.artistName }}</p>
+							<p v-if="album.name" class="am-album">{{ album.name }}</p>
 
-							<div class="am-meta am-metaSmall am-metaInfo">
+							<div class="am-meta am-meta-details">
 								<span v-if="album.genreName">{{ album.genreName }}</span>
 								<span v-if="album.releaseYear">{{ album.releaseYear }}</span>
 								<k-box v-if="album.isMasteredForItunes" icon="high-res" class="am-mastered">Lossless</k-box>
 							</div>
 
-							<p v-if="album.trackCount || album.totalDuration" class="am-meta am-small">{{ album.trackCount }} songs, {{ album.totalDuration }}</p>
+							<p v-if="album.trackCount || album.totalDuration" class="am-meta">{{ album.trackCount }} songs, {{ album.totalDuration }}</p>
 
-							<k-box v-if="album.isAppleDigitalMaster" icon="apple-digital-master" class="am-meta am-metaSmall">Apple Digital Master</k-box>
+							<k-box v-if="album.isAppleDigitalMaster" icon="apple-digital-master" class="am-meta">Apple Digital Master</k-box>
 						</div>
 					</k-box>
 				</k-grid>
@@ -43,8 +43,8 @@
 					style="border-radius: var(--rounded); margin-top: var(--spacing-1)"
 				/>
 
-				<k-box v-if="album.releaseDateFormatted" class="am-meta am-metaSmall am-copyright">{{ album.releaseDateFormatted }}</k-box>
-				<k-box v-if="album.copyright" class="am-meta am-metaSmall">{{ album.copyright }}</k-box>
+				<k-box v-if="album.releaseDateFormatted" class="am-meta am-copyright">{{ album.releaseDateFormatted }}</k-box>
+				<k-box v-if="album.copyright" class="am-meta">{{ album.copyright }}</k-box>
 			</k-section>
 
 		</k-view>
@@ -123,8 +123,9 @@ export default {
 		albumItemsColumns() {
 			// k-items will display `text` & `info` — labels here just rename headers
 			return {
-				text: { label: 'Track' },
+				text: { label: 'Track', mobile: true },
 				info: { label: 'Duration', width: '1/8', align: 'right' },
+				//options: { label: '', type: 'options', align: 'right', mobile: false }
 			};
 		},
 		isDigitalMaster() {
@@ -179,34 +180,35 @@ export default {
 </script>
 
 <style>
-.am-mfi img,
-.am-dm img {
-	fill: var(--color-gray-100);
-}
-
-.am-albumArtist {
+	.am-artist {
 	font-size: var(--text-4xl);
 }
 
-.am-albumAlbum {
+.am-album {
 	font-size: var(--text-2xl);
 	line-height: var(--height-sm);
 	margin-top: var(--spacing-2);
 }
 
-.am-albumAlbum,
-.am-albumDuration {
+.am-album,
+.am-duration {
 	color: light-dark(var(--color-gray-650), var(--color-gray-450));
 }
 
-.am-albumDuration {margin-top: var(--spacing-2);}
+.am-duration {margin-top: var(--spacing-2);}
 
-.am-albumDuration,
-.am-albumComposer {
+.am-duration,
+.am-composer {
 	font-size: var(--text-lg);
 }
 
-.am-metaInfo {
+.am-meta {
+	color: light-dark(var(--color-gray-500), var(--color-gray-650));
+	font-size: var(--text-sm);
+	margin-top: var(--spacing-2);
+}
+
+.am-meta-details {
 	display: flex;
 	flex-flow: row nowrap;
 	justify-content: flex-start;
@@ -216,26 +218,17 @@ export default {
 	width: 100%;
 }
 
-.am-metaInfo > *:not(:last-child)::after {
+.am-meta-details > *:not(:last-child)::after {
   content: "•";
   margin: 0 0.25rem;
-}
-
-.am-mastered {width: auto;}
-
-.am-metaSmall {
-	font-size: var(--text-sm);
-}
-
-.am-meta {
-	color: light-dark(var(--color-gray-500), var(--color-gray-700));
-	margin-top: var(--spacing-2);
 }
 
 .am-copyright {
 	margin-top: var(--spacing-4);
 	width: 50%;
 }
+
+.am-mastered {width: auto;}
 
 .am-badges {
 	display: flex;
@@ -248,6 +241,4 @@ export default {
 	height: 31px;
 	width: 100px;
 }
-
-.am-dm-badge figure svg {fill: var(--color-red-400)}
 </style>

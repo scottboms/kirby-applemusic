@@ -39,9 +39,9 @@ Kirby::plugin('scottboms/applemusic', [
 		'storefront' => 'auto',
 		'songsLimit' => 10,
 		'songsToShow' => 6,
-		'cacheTtl' => 120, // seconds to cache recent tracks response
-		'tokenTtl' => 3600,
-		'tokenCacheTtlMinutes' => 30,
+		'cacheTtl' => 120, // 2 mins to cache recent tracks response
+		'tokenTtl' => 3600, // 1 hr
+		'tokenCacheTtlMinutes' => 43200, // 30 days (24 * 60 * 30)
 		'allowedOrigins' => [
 			// e.g. 'https://example.com', 'http://localhost:3000'
 		],
@@ -159,7 +159,7 @@ Kirby::plugin('scottboms/applemusic', [
 	],
 
 	'info' => [
-		'version'  => '2.3.4',
+		'version'  => '2.3.5',
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],

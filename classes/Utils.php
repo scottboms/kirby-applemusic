@@ -98,14 +98,14 @@ class Utils
 			$parts[] = $m . ' minute' . ($m > 1 ? 's' : '');
 		}
 
-		// simplified rule: only show seconds if minutes are zero after rounding
-		// this yields examples like 1 hour, 23 seconds or just 23 seconds
+		// only show seconds if minutes are zero after rounding
+		// yields: 1 hour, 23 seconds or just 23 seconds
 		if ($m === 0 && $s > 0) {
 			$parts[] = $s . ' second' . ($s > 1 ? 's' : '');
 		}
 
 		if (empty($parts)) {
-			// happens for < 0.5s after rounding; choose the friendliest fallback
+			// for < 0.5s after rounding
 			return '0 minutes';
 		}
 

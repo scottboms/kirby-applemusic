@@ -13,18 +13,30 @@ class MusicKit
 	private const CACHE_NAMESPACE = 'scottboms.applemusic';
 	private const CACHE_KEY_PREFIX = 'applemusic:';
 
-	// cache + cacheKey stay here (auth reuses them)
+	/**
+	 * cache + cacheKey stay here (auth reuses them)
+	 * @return String
+	 */
 	public static function cache(): \Kirby\Cache\Cache
 	{
 		return kirby()->cache(self::CACHE_NAMESPACE);
 	}
 
+
+	/**
+	 * unique cacheKey prefix
+	 * @return String
+	 */
 	public static function cacheKey(string $suffix): string
 	{
 		return self::CACHE_KEY_PREFIX . $suffix;
 	}
 
-	/** read plugin config options */
+
+	/**
+	 * read plugin config options
+	 * @return Array
+	 */
 	public static function opts(): array
 	{
 		$o = option('scottboms.applemusic') ?? [];
@@ -32,7 +44,11 @@ class MusicKit
 		return $o;
 	}
 
-	/** ensure options are present (delegates validation to auth) */
+
+	/**
+	 * ensure options are present (delegates validation to auth)
+	 * @return Array
+	 */
 	public static function ensureOptions(?array $opts = null)
 	{
 		$opts ??= static::opts();
@@ -42,7 +58,11 @@ class MusicKit
 		return $opts;
 	}
 
-	/** low-level get wrapper for apple music api */
+
+	/**
+	 * low-level get wrapper for apple music api
+	 * @return Array
+	 */
 	public static function appleGet(string $path, string $devToken, string $musicUserToken, array $headers = []): Response
 	{
 		$res = Remote::get('https://api.music.apple.com' . $path, [
@@ -67,12 +87,13 @@ class MusicKit
 		return Response::json($body ?? ['data' => []], 200);
 	}
 
+
 	/**
 	 * fetch recently played tracks for the current user.
 	 * @param array $opts ['teamId','keyId','privateKey','tokenTtl'?]
 	 * @param array $params ['limit'=>10, 'offset'=>0, 'language'=>'en-US', 'storefront'=>'us']
-	 * @param string|null $userId
-	 * @return array{data:array, meta?:array, next?:string, prev?:string}|Response
+	 * @param string | null $userId
+	 * @return array | Response
 	*/
   public static function recentlyPlayedTracks(array $opts, array $params = [], ?string $userId = null)
 	{
@@ -118,6 +139,7 @@ class MusicKit
 		// return decoded json (api returns "data" + paging "next"/"prev" urls)
 		return \json_decode($res->content(), true);
 	}
+
 
 	/**
 	 * get user storefront
@@ -381,7 +403,6 @@ class MusicKit
 	 * server-side helper for front-end snippet
 	 * fetches recently played using shared token, caches response,
 	 * and normalize to a render-friendly array
-	 *
 	 * @return Array
 	 */
 	public static function recentForFrontend(int $limit = 12, string $language = 'en-US', int $cacheTtl = 120): array

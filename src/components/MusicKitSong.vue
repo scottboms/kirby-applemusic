@@ -19,20 +19,20 @@
 
 					<k-box style="--width: 1/2">
 						<div class="k-text" style="padding: var(--spacing-8)">
-							<p v-if="song.artistName" class="am-songArtist">{{ song.artistName }}</p>
-							<p v-if="song.albumName" class="am-songAlbum">{{ song.albumName }} ({{ song.releaseYear }})</p>
+							<p v-if="song.artistName" class="am-artist">{{ song.artistName }}</p>
+							<p v-if="song.albumName" class="am-album">{{ song.albumName }} ({{ song.releaseYear }})</p>
 
-							<k-box v-if="song.duration" icon="clock" class="am-songDuration">{{ song.duration }}</k-box>
+							<k-box v-if="song.duration" icon="clock" class="am-duration">{{ song.duration }}</k-box>
 
 							<k-box v-if="song.previewUrl">
-								<audio :src="song.previewUrl" class="k-file-preview am-audioPreview" controls />
+								<audio :src="song.previewUrl" class="k-file-preview am-preview" controls />
 							</k-box>
 
 							<hr />
 
-							<k-box v-if="song.composerName" icon="composer" class="am-meta am-metaSmall">Written by {{ song.composerName }}</k-box>
-							<k-box v-if="song.genreNames?.length" icon="tag" class="am-meta am-metaSmall">{{ song.genreNames.join(', ') }}</k-box>
-							<k-box v-if="song.releaseDate" icon="calendar" class="am-meta am-metaSmall">{{ song.releaseDate }}</k-box>
+							<k-box v-if="song.composerName" icon="composer" class="am-meta">Written by {{ song.composerName }}</k-box>
+							<k-box v-if="song.genreNames?.length" icon="tag" class="am-meta">{{ song.genreNames.join(', ') }}</k-box>
+							<k-box v-if="song.releaseDate" icon="calendar" class="am-meta">{{ song.releaseDate }}</k-box>
 						</div>
 					</k-box>
 				</k-grid>
@@ -84,39 +84,39 @@ export default {
 </script>
 
 <style>
-.am-songArtist {
+.am-artist {
 	font-size: var(--text-4xl);
 }
 
-.am-songAlbum {
+.am-album {
 	font-size: var(--text-2xl);
+	line-height: var(--height-sm);
 	margin-top: var(--spacing-2);
 }
 
-.am-songAlbum,
-.am-songDuration {
+.am-album,
+.am-duration {
 	color: light-dark(var(--color-gray-650), var(--color-gray-450));
 }
 
-.am-songDuration {margin-top: var(--spacing-2);}
+.am-duration {margin-top: var(--spacing-2);}
 
-.am-songDuration,
-.am-songComposer {
+.am-duration,
+.am-composer {
 	font-size: var(--text-lg);
 }
 
-.am-audioPreview {
+.am-meta {
+	color: light-dark(var(--color-gray-500), var(--color-gray-650));
+	font-size: var(--text-sm);
+	margin-top: var(--spacing-2);
+}
+
+.am-preview {
 	background: none;
 	margin: var(--spacing-4) 0;
 	width: 25%;
 }
-
-.am-metaSmall {
-	font-size: var(--text-sm);
-}
-
-.am-meta {
-	color: light-dark(var(--color-gray-500), var(--color-gray-700));
-	margin-top: var(--spacing-2);
-}
 </style>
+
+
