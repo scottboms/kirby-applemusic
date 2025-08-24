@@ -159,7 +159,7 @@ Kirby::plugin('scottboms/applemusic', [
 	],
 
 	'info' => [
-		'version'  => '2.3.3',
+		'version'  => '2.3.4',
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],

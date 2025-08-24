@@ -41,6 +41,7 @@ return [
 		}
 	],
 
+
 	/**
 	 * ---------------------------------------------------------------------------
 	 * has dev token?
@@ -50,6 +51,28 @@ return [
 		'method'  => 'GET',
 		'action'  => fn () =>
 			Response::json(['hasToken' => (bool) (kirby()->user() ? Auth::readToken(kirby()->user()->id()) : false)], 200)
+	],
+
+
+  /**
+	 * ---------------------------------------------------------------------------
+	 * has mut token?
+	 */
+	[
+		'pattern' => 'applemusic/token-status',
+		'method'  => 'GET',
+		'action'  => function () {
+			if (!$user = kirby()->user()) {
+				return Response::json(['ok' => false, 'reason' => 'unauthorized'], 401);
+			}
+			$token = Auth::readToken($user->id());
+			return Response::json([
+				'ok'       => (bool) $token,
+				'hasToken' => (bool) $token,
+				'cacheKey' => MusicKit::cacheKey('token:' . $user->id()),
+				'path'     => Auth::tokenPath($user->id())
+			], 200);
+		}
 	],
 
 
