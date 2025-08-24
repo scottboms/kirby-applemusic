@@ -41,6 +41,17 @@ return [
 		}
 	],
 
+	/**
+	 * ---------------------------------------------------------------------------
+	 * has dev token?
+	 */
+	[
+		'pattern' => 'applemusic/has-token',
+		'method'  => 'GET',
+		'action'  => fn () =>
+			Response::json(['hasToken' => (bool) (kirby()->user() ? Auth::readToken(kirby()->user()->id()) : false)], 200)
+	],
+
 
   /**
 	 * ---------------------------------------------------------------------------
