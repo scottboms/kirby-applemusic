@@ -7,6 +7,7 @@ use Scottboms\MusicKit\Auth;
 use Scottboms\MusicKit\Utils;
 use Kirby\Http\Response;
 use Kirby\Http\Remote;
+use Kirby\Cms\Content;
 
 class MusicKit
 {
@@ -403,64 +404,92 @@ class MusicKit
 	 * server-side helper for front-end snippet
 	 * fetches recently played using shared token, caches response,
 	 * and normalize to a render-friendly array
+	 *
 	 * @return Array
 	 */
-	public static function recentForFrontend(int $limit = 12, string $language = 'en-US', int $cacheTtl = 120): array
+	public static function recentForFrontend(
+		int $limit = 12,
+		string $language = 'en-US',
+		int $cacheTtl = 120,
+		bool $asContent = true): array
 	{
 		$cache     = kirby()->cache('scottboms.applemusic');
 		$cacheKey  = 'am:recent:site:' . md5(json_encode([$limit, $language]));
+
+		// try cache (always arrays)
 		if ($cacheTtl > 0 && ($cached = $cache->get($cacheKey))) {
-			return $cached;
+			return static::toContentPayload($cached);
 		}
 
+		// need a shared (site-level) Music-User-Token
 		$mut = Auth::readAnyToken();
 		if (!$mut) {
 			$payload = ['items' => [], 'error' => 'Missing shared Music-User-Token (site)'];
 			if ($cacheTtl > 0) $cache->set($cacheKey, $payload, $cacheTtl);
-			return $payload;
+			return static::toContentPayload($payload);
 		}
 
+		// dev token + fetch from api
 		$opts = static::opts();
 		$dev  = Auth::devToken($opts);
-		$resp = static::appleGet(
-			'/v1/me/recent/played/tracks?limit=' . $limit . '&l=' . rawurlencode($language),
-			$dev,
-			$mut
-		);
-		$json = json_decode($resp->body() ?? 'null', true);
 
-		if (!is_array($json) || $resp->code() >= 400) {
+		$path = '/v1/me/recent/played/tracks?limit=' . (int)$limit . '&l=' . rawurlencode($language);
+		$res  = static::appleGet($path, $dev, $mut);
+		$json = json_decode($res->body() ?? 'null', true);
+
+		if (!is_array($json) || !isset($json['data'])) {
 			$payload = ['items' => [], 'error' => 'Apple Music API error'];
 			if ($cacheTtl > 0) $cache->set($cacheKey, $payload, $cacheTtl);
-			return $payload;
+			return static::toContentPayload($payload);
 		}
 
-		// normalize for rendering
+		// normalize items to cache-friendly arrays
 		$items = array_map(function ($i) {
 			$a   = $i['attributes'] ?? [];
 			$img = null;
+
 			if (!empty($a['artwork']['url'])) {
 				$img = str_replace(['{w}', '{h}'], [240, 240], $a['artwork']['url']);
 			}
 
-			// convert millis -> mm:ss
-			$duration = $a['durationInMillis'] ?? null;
-			$songLength = Utils::format_mmss($duration);
+			$id  = $i['id'] ?? null;
+			$url = $a['url'] ?? null;
+
+			// if the id starts with i., clear the url (internal ids)
+			if (is_string($id) && str_starts_with($id, 'i.')) {
+				$url = null;
+			}
 
 			return [
-				'id'          => $i['id'] ?? null,
+				'id'          => $id,
 				'name'        => $a['name'] ?? '',
 				'artist'      => $a['artistName'] ?? '',
 				'album'       => $a['albumName'] ?? '',
-				'duration'    => $songLength,
-				'releaseDate' => $a['releaseDate'] ?? null,
-				'url'         => $a['url'] ?? null,
+				'duration'    => Utils::format_mmss($a['durationInMillis'] ?? null),
+				'releaseDate' => $a['releaseDate'] ?? null, // ISO 8601 (use ->toDate() in templates)
+				'url'         => $url,
 				'image'       => $img,
 			];
 		}, $json['data'] ?? []);
 
 		$payload = ['items' => $items, 'error' => null];
-		if ($cacheTtl > 0) $cache->set($cacheKey, $payload, $cacheTtl);
+
+		// cache arrays
+		if ($cacheTtl > 0) {
+			$cache->set($cacheKey, $payload, $cacheTtl);
+		}
+
+		return static::toContentPayload($payload);
+	}
+
+
+	/**
+	 * convert ['items' => [array...]] to ['items' => [Content...]]
+	 * @return Array
+	 */
+	protected static function toContentPayload(array $payload): array
+	{
+		$payload['items'] = array_map(fn ($i) => new Content($i), $payload['items'] ?? []);
 		return $payload;
 	}
 

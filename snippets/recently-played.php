@@ -7,6 +7,7 @@ $language = $language ?? 'en-US';
 $cacheTtl = (int)($cacheTtl ?? 120);
 
 $result = MusicKit::recentForFrontend($limit, $language, $cacheTtl);
+
 $items  = $result['items'];
 $error  = $result['error'];
 ?>
@@ -20,19 +21,37 @@ $error  = $result['error'];
 		<p class="am-empty">No items.</p>
 	<?php else: ?>
 		<ul class="am-grid">
-			<?php foreach ($items as $t): ?>
+			<?php foreach ($items as $song): ?>
 				<li class="am-card">
-					<a<?= $t['url'] ? ' href="' . html($t['url']) . '" target="_blank" rel="noopener"' : '' ?>>
-						<?php if ($t['image']): ?>
-							<figure>
-								<img src="<?= html($t['image']) ?>" alt="<?= html($t['name']) ?>" loading="lazy">
-							</figure>
-						<?php endif; ?>
-						<span class="am-title"><?= html($t['name']) ?></span>
-						<span class="am-subtitle"><?= html($t['album']) ?></span>
-						<span class="am-sub"><?= html($t['artist']) ?></span>
-						<span class="am-sub"><?= html($t['duration']) ?></span>
-					</a>
+					<?php if ($song->url()->isNotEmpty()): ?>
+						<a href="<?= $song->url() ?>" target="_blank" rel="noopener">
+					<?php endif ?>
+
+					<?php if ($song->image()->isNotEmpty()): ?>
+						<figure>
+							<img src="<?= $song->image() ?>" alt="<?= $song->name() ?>" loading="lazy">
+						</figure>
+					<?php endif ?>
+
+					<?php if ($song->name()->isNotEmpty()): ?>
+						<span class="am-title"><?= $song->name() ?></span>
+					<?php endif ?>
+
+					<?php if ($song->album()->isNotEmpty()): ?>
+						<span class="am-subtitle"><?= $song->album() ?></span>
+					<?php endif ?>
+
+					<?php if ($song->artist()->isNotEmpty()): ?>
+						<span class="am-sub"><?= $song->artist() ?></span>
+					<?php endif ?>
+
+					<?php if ($song->duration()->isNotEmpty()): ?>
+						<span class="am-sub"><?= $song->duration() ?></span>
+					<?php endif ?>
+
+					<?php if ($song->url()->isNotEmpty()): ?>
+						</a>
+					<?php endif ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
