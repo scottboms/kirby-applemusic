@@ -31,6 +31,11 @@ $error  = $result['error'];
 						<figure>
 							<img src="<?= $song->image() ?>" alt="<?= $song->name() ?>" loading="lazy">
 						</figure>
+					<?php else: ?>
+
+						<figure>
+							<img src="<?= $kirby::plugin('scottboms/applemusic')->asset('missing-artwork.jpg') ?>" alt="Artwork missing" loading="lazy">
+						</figure>
 					<?php endif ?>
 
 					<?php if ($song->name()->isNotEmpty()): ?>
