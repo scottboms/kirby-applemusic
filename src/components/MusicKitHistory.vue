@@ -132,6 +132,7 @@
 
 <script>
 import { makeTrackOptions } from '../trackOptions';
+import missingArtwork from '../../assets/missing-artwork.jpg';
 
 export default {
 	name: 'Apple Music',
@@ -161,7 +162,9 @@ export default {
 			searching: false,
 			searchError: null,
 			searchLimit: 10,
-			_searchTimer: null
+			_searchTimer: null,
+			// missing artwork
+			fallbackArtwork: missingArtwork,
 		};
 	},
 
@@ -219,12 +222,14 @@ export default {
 					? `https://music.apple.com/${storefront}/${pathSegment}/${encodeURIComponent(id)}`
 					: null;
 
+				const imgSrc = image || this.fallbackArtwork;
+
 				const item = {
 					id,
 					text,
 					info,
 					icon: isAlbum ? 'album' : 'music',
-					...(image ? { image: { src: image, ratio: '1/1', cover: true, back: 'pattern' } } : {})
+					...(image ? { image: { src: imgSrc, ratio: '1/1', cover: true, back: 'pattern' } } : {})
 				};
 
 				if (link) {
@@ -268,7 +273,7 @@ export default {
 					text: this.trackTitle(item),
 					info: this.artistName(item),
 					image: {
-						src: this.artworkUrl(item, 300) || undefined,
+						src: this.artworkUrl(item, 300) || this.fallbackArtwork,
 						ratio: '1/1',
 						cover: true,
 						back: 'pattern'
