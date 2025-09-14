@@ -388,4 +388,33 @@ return [
 		}
 	],
 
+	/*
+	 * clear cached cover assets from media folder
+	 */
+	[
+		'pattern' => 'applemusic/covers/clear',
+		'method'  => 'POST',
+		'action'  => function () {
+			$user = kirby()->user();
+			if (!$user) {
+				return Response::json(['ok' => false, 'error' => 'Unauthorized'], 401);
+			}
+
+			// admin only access
+			if (!$user->isAdmin()) {
+				return Response::json(['ok' => false, 'error' => 'Forbidden'], 403);
+			}
+
+			$removed = MusicKit::clearCoverStorage();
+
+			return Response::json([
+				'ok'      => true,
+				'removed' => $removed,
+				'message' => $removed === 0
+					? 'Cover cache is already empty'
+						: "Removed {$removed} cached cover" . ($removed === 1 ? '' : 's') . '.',
+			], 200);
+		},
+	],
+
 ];

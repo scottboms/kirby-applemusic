@@ -5,9 +5,11 @@ namespace Scottboms\MusicKit;
 
 use Scottboms\MusicKit\Auth;
 use Scottboms\MusicKit\Utils;
+use Kirby\Cms\Content;
+use Kirby\Filesystem\Dir;
+use Kirby\Filesystem\F;
 use Kirby\Http\Response;
 use Kirby\Http\Remote;
-use Kirby\Cms\Content;
 
 class MusicKit
 {
@@ -167,13 +169,35 @@ class MusicKit
 
 	/**
 	 * get recently played tracks
-	 * keeps existing recentlyPlayedTracks() logic, normalizes the return to response
+	 * keeps existing recentlyPlayedTracks() logic
+	 * normalizes the return to response
 	 * @return Array
 	 */
 	public static function recentlyPlayed(array $opts, array $params = []): Response
 	{
 		$result = static::recentlyPlayedTracks($opts, $params, null);
-		return $result instanceof Response ? $result : Response::json($result ?? ['data' => []], 200);
+		if ($result instanceof Response) return $result;
+
+		$data = $result['data'] ?? [];
+		$data = array_map(function ($i) {
+			$a = $i['attributes'] ?? [];
+			if (!empty($a['artwork']['url']) && !empty($i['id'])) {
+				$local = static::localCoverFromApple('song', (string)$i['id'], (string)$a['artwork']['url'], 240, 240);
+				if ($local) {
+					// overwrite template string
+					$i['attributes']['artwork']['url'] = $local;
+					// optional: also provide a flat field
+					$i['image'] = $local;
+				}
+			}
+			// clear external url for internal ids
+			if (isset($i['id']) && is_string($i['id']) && str_starts_with($i['id'], 'i.')) {
+				$i['attributes']['url'] = null;
+			}
+			return $i;
+		}, $data);
+		$result['data'] = $data;
+		return Response::json($result, 200);
 	}
 
 	// get individual track details
@@ -225,8 +249,8 @@ class MusicKit
 		$a  = $it['attributes'] ?? [];
 		$img = null;
 
-		if (!empty($a['artwork']['url'])) {
-			$img = str_replace(['{w}','{h}'], [600, 600], $a['artwork']['url']);
+		if (!empty($a['artwork']['url']) && !empty($it['id'])) {
+			$img = static::localCoverFromApple('song', (string)$it['id'], (string)$a['artwork']['url'], 600, 600) ?? null;
 		}
 
 		$duration = isset($a['durationInMillis'])
@@ -321,8 +345,8 @@ class MusicKit
 		$a  = $it['attributes'] ?? [];
 		$img = null;
 
-		if (!empty($a['artwork']['url'])) {
-			$img = str_replace(['{w}','{h}'], [600, 600], $a['artwork']['url']);
+		if (!empty($a['artwork']['url']) && !empty($it['id'])) {
+			$img = static::localCoverFromApple('album', (string)$it['id'], (string)$a['artwork']['url'], 600, 600) ?? null;
 		}
 
 		$seconds = isset($a['durationInMillis']) ? (int) floor($a['durationInMillis'] / 1000) : null;
@@ -411,10 +435,12 @@ class MusicKit
 		int $limit = 12,
 		string $language = 'en-US',
 		int $cacheTtl = 120,
-		bool $asContent = true): array
+		bool $asContent = true,
+		int $thumbW = 240,
+		int $thumbH = 240): array
 	{
 		$cache     = kirby()->cache('scottboms.applemusic');
-		$cacheKey  = 'am:recent:site:' . md5(json_encode([$limit, $language]));
+		$cacheKey  = 'am:recent:site:' . md5(json_encode([$limit, $language, $thumbW, $thumbH]));
 
 		// try cache (always arrays)
 		if ($cacheTtl > 0 && ($cached = $cache->get($cacheKey))) {
@@ -444,31 +470,38 @@ class MusicKit
 		}
 
 		// normalize items to cache-friendly arrays
-		$items = array_map(function ($i) {
+		$items = array_map(function ($i) use ($thumbW, $thumbH) {
 			$a   = $i['attributes'] ?? [];
-			$img = null;
+			$template = (string)($a['artwork']['url'] ?? '');
+			$id       = (string)($i['id'] ?? '');
+			$img      = null;
 
-			if (!empty($a['artwork']['url'])) {
-				$img = str_replace(['{w}', '{h}'], [240, 240], $a['artwork']['url']);
+			// eager local (download on first view)
+			if ($template !== '' && $id !== '') {
+				$img = static::localCoverFromApple('song', $id, $template, $thumbW, $thumbH) ?? null;
 			}
 
-			$id  = $i['id'] ?? null;
-			$url = $a['url'] ?? null;
+			// lazy prefer-local (no download) + fallback chain
+			$thumb = static::artworkUrlPreferLocal('song', $id, $template, $thumbW, $thumbH)
+				?? static::missingArtworkUrl()
+				?? null;
 
-			// if the id starts with i., clear the url (internal ids)
-			if (is_string($id) && str_starts_with($id, 'i.')) {
-				$url = null;
+			$url = $a['url'] ?? null;
+			if ($id !== '' && str_starts_with($id, 'i.')) {
+				$url = null; // internal ids shouldn't link out
 			}
 
 			return [
-				'id'          => $id,
+				'id'          => $i['id'] ?? null,
 				'name'        => $a['name'] ?? '',
 				'artist'      => $a['artistName'] ?? '',
 				'album'       => $a['albumName'] ?? '',
 				'duration'    => Utils::format_mmss($a['durationInMillis'] ?? null),
 				'releaseDate' => $a['releaseDate'] ?? null, // ISO 8601 (use ->toDate() in templates)
 				'url'         => $url,
-				'image'       => $img,
+				'image'       => $img,			// eager local (may be null on first run)
+				'thumb'       => $thumb,    // always-resolved display image with graceful fallbacks
+				'artwork'     => $template, // e.g. ".../{w}x{h}bb.jpg"
 			];
 		}, $json['data'] ?? []);
 
@@ -491,6 +524,198 @@ class MusicKit
 	{
 		$payload['items'] = array_map(fn ($i) => new Content($i), $payload['items'] ?? []);
 		return $payload;
+	}
+
+
+	/**
+	 * Resolve the media dir + url base
+	 * @return Array
+	 */
+	protected static function coverStorage(): array
+	{
+		$base = 'scottboms/applemusic/covers';
+		$root = kirby()->root('media') . '/' . $base;
+		$url  = kirby()->url('media')  . '/' . $base;
+
+		Dir::make($root, true);
+		return [$root, $url];
+	}
+
+
+	/**
+	 * deletes all cached cover files and recreates folder
+	 * returns the number of files removed
+	 * @return Int
+	 */
+	public static function clearCoverStorage(): int
+	{
+		[$root] = [static::coverStorage()[0]];
+		if (!Dir::exists($root)) {
+			Dir::make($root, true);
+			return 0;
+		}
+
+		$count = 0;
+		foreach ((array)Dir::read($root) as $name) {
+			$path = $root . '/' . $name;
+			// only touch files
+			if (is_file($path) && F::remove($path)) {
+				$count++;
+			}
+		}
+		return $count;
+	}
+
+
+	/**
+	 * build a deterministic filename for a given artwork
+	 * uses the item type + id + WxH to avoid collisions
+	 * covers $type 'song | album'
+	 * @return String
+	 */
+	protected static function coverFilename(string $type, string $id, int $w, int $h, string $ext = 'jpg'): string
+	{
+		// sanitize - only need stable url-safe inputs
+		$cleanId = preg_replace('![^a-zA-Z0-9._-]+!', '-', $id) ?? $id;
+		return sprintf('%s-%s-%dx%d.%s', $type, $cleanId, $w, $h, $ext);
+	}
+
+
+	/**
+	 * given an apple artwork template url and desired WxH, return a local media url
+	 * downloads and stores the image on first use; afterwards serves from /media
+	 *
+	 * @param string $type 'song' or 'album' (used in filename only)
+	 * @param string $id   apple music id (used in filename only)
+	 * @param string $artworkTemplate e.g. "https://.../{w}x{h}bb.jpg"
+	 * @param int    $w
+	 * @param int    $h
+	 * @param bool   $forceRefresh if true, re-download even if the file exists
+	 */
+	protected static function localCoverFromApple(string $type, string $id, string $artworkTemplate, int $w = 600, int $h = 600, bool $forceRefresh = false): ?string
+	{
+		if ($artworkTemplate === '') {
+			return static::missingArtworkUrl();
+		}
+
+		// build the remote url by replacing size placeholders
+		$remoteUrl = str_replace(['{w}', '{h}'], [$w, $h], $artworkTemplate);
+
+		// guess extension from the template, fall back to mime if needed
+		$ext = pathinfo(parse_url($remoteUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+
+		[$root, $baseUrl] = static::coverStorage();
+		$filename = static::coverFilename($type, $id, $w, $h, $ext);
+		$path     = $root . '/' . $filename;
+		$url      = $baseUrl . '/' . $filename;
+
+		// if already available, return a local url
+		if (!$forceRefresh && F::exists($path)) {
+			return $url;
+		}
+
+		// fetch from apple
+		$res = Remote::get($remoteUrl, [
+			'timeout' => 10,
+			'headers' => [
+				'Accept' => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+			],
+		]);
+
+		if ($res->code() >= 400) {
+			// something went wrong, return fallback image
+			return static::missingArtworkUrl();
+		}
+
+		$body = $res->content();
+		if ($body === null || $body === '') {
+			return static::missingArtworkUrl();
+		}
+
+		// if mime suggests a different extension, switch accordingly
+		$mime = strtolower($res->header('Content-Type') ?? '');
+		$mimeToExt = [
+			'image/jpeg' => 'jpg',
+			'image/jpg'  => 'jpg',
+			'image/png'  => 'png',
+			'image/webp' => 'webp',
+			'image/avif' => 'avif',
+		];
+
+		if (isset($mimeToExt[$mime]) && $mimeToExt[$mime] !== $ext) {
+			$ext      = $mimeToExt[$mime];
+			$filename = static::coverFilename($type, $id, $w, $h, $ext);
+			$path     = $root . '/' . $filename;
+			$url      = $baseUrl . '/' . $filename;
+		}
+
+		// write file to media storage
+		F::write($path, $body);
+		return $url;
+	}
+
+
+	/*
+	 * build apple url from its {w}/{h} template without fetching
+	 * @return String
+	 */
+	public static function appleArtworkUrl(string $template, int $w, int $h): ?string
+	{
+		if ($template === '') return null;
+		return str_replace(['{w}', '{h}'], [$w, $h], $template);
+	}
+
+
+	/*
+	 * get local cover file if exists in media folder
+	 * @return String
+	 */
+	public static function coverLocalIfExists(string $type, string $id, int $w, int $h): ?string
+	{
+		[$root, $baseUrl] = static::coverStorage();
+		$cleanId = preg_replace('![^a-zA-Z0-9._-]+!', '-', $id) ?? $id;
+		$base = sprintf('%s-%s-%dx%d', $type, $cleanId, $w, $h);
+		foreach (['jpg','png','webp','avif'] as $ext) {
+			$path = $root . '/' . $base . '.' . $ext;
+			if (is_file($path)) {
+				return $baseUrl . '/' . $base . '.' . $ext;
+			}
+		}
+		return null;
+	}
+
+
+	/**
+	 * prefer local media but if missing fall back to apple url
+	 */
+	public static function artworkUrlPreferLocal( string $type, string $id, string $artworkTemplate, int $w = 600, int $h = 600): ?string {
+		return static::coverLocalIfExists($type, $id, $w, $h)
+			?? static::appleArtworkUrl($artworkTemplate, $w, $h);
+	}
+
+
+	/**
+	 * url to fallback image
+	 * @return String
+	 */
+	protected static function missingArtworkUrl(): ?string
+	{
+		// option a: publish a shipped asset into media on first use:
+		[$root, $baseUrl] = static::coverStorage();
+		$filename = 'missing-artwork.jpg';
+		$path     = $root . '/' . $filename;
+		$url      = $baseUrl . '/' . $filename;
+
+		if (!F::exists($path)) {
+			$pluginAsset = kirby()->root('plugins') . '/kirby-applemusic/assets/missing-artwork.jpg';
+			if (F::exists($pluginAsset)) {
+				F::copy($pluginAsset, $path);
+			} else {
+				// nothing to serve
+				return null;
+			}
+		}
+		return $url;
 	}
 
 }

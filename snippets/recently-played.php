@@ -2,11 +2,15 @@
 
 use Scottboms\MusicKit\MusicKit;
 
-$limit    = (int)($limit ?? option('scottboms.applemusic.songsToShow', 6));
-$language = $language ?? 'en-US';
-$cacheTtl = (int)($cacheTtl ?? 120);
-
-$result = MusicKit::recentForFrontend($limit, $language, $cacheTtl);
+$limit = (int)($limit ?? option('scottboms.applemusic.songsToShow', 6));
+$result = MusicKit::recentForFrontend(
+	limit: $limit,
+	language: 'en-US',
+	cacheTtl: 120,
+	asContent: true,
+	thumbW: 240,
+	thumbH: 240
+);
 
 $items  = $result['items'];
 $error  = $result['error'];
@@ -27,16 +31,11 @@ $error  = $result['error'];
 						<a href="<?= $song->url() ?>" target="_blank" rel="noopener">
 					<?php endif ?>
 
-					<?php if ($song->image()->isNotEmpty()): ?>
-						<figure>
-							<img src="<?= $song->image() ?>" alt="<?= $song->name() ?>" loading="lazy">
-						</figure>
-					<?php else: ?>
-
-						<figure>
-							<img src="<?= $kirby::plugin('scottboms/applemusic')->asset('missing-artwork.jpg') ?>" alt="Artwork missing" loading="lazy">
-						</figure>
-					<?php endif ?>
+					<figure>
+            <?php if ($song->thumb()->isNotEmpty()): ?>
+              <img src="<?= esc($song->thumb()) ?>" alt="<?= esc($song->name()) ?>" loading="lazy">
+            <?php endif ?>
+          </figure>
 
 					<?php if ($song->name()->isNotEmpty()): ?>
 						<span class="am-title"><?= $song->name() ?></span>

@@ -16,6 +16,16 @@
 						text="Setup Guide"
 					/>
 
+					<k-button v-if="hasToken"
+						:disabled="busy"
+						variant="filled"
+						icon="shred"
+						size="xs"
+						responsive="true"
+						text="Clear Covers"
+						@click="clearCachedCovers"
+					/>
+
 					<k-button v-if="!hasToken"
 						:disabled="busy"
 						variant="filled"
@@ -740,6 +750,37 @@ export default {
 		trackUrl(track) {
 			return track?.attributes?.url || null;
 		},
+
+
+		// clear covers cache
+		// implemented via panel button
+		async clearCachedCovers() {
+			// simple guard + confirm
+			if (this.busy) return;
+
+			this.busy = true;
+			try {
+				const res = await fetch('/applemusic/covers/clear', {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: {
+						'Accept': 'application/json',
+						// if you enforce csrf on post routes, include the token:
+						...(this.$system?.csrf ? { 'X-CSRF': this.$system.csrf } : {})
+					}
+				});
+
+				const json = await res.json();
+				if (!res.ok || json?.ok === false) throw new Error(json?.error || `HTTP ${res.status}`);
+				this.notify('success', 'Cover cache cleared');
+			} catch (e) {
+				this.notify('error', 'Failed to clear covers')
+				console.log('error: ' . e?.message);
+			} finally {
+				this.busy = false;
+			}
+		},
+
 
 		// notifications
 		notify(type, message) {
