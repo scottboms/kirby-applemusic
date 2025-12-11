@@ -24,8 +24,8 @@ use Scottboms\MusicKit\Utils;
 
 // shamelessly borrowed from distantnative/retour-for-kirby
 if (
-	version_compare(App::version() ?? '0.0.0', '4.0.1', '<') === true ||
-	version_compare(App::version() ?? '0.0.0', '6.0.0', '>=') === true
+	version_compare(App::version() ?? '0.0.0', '5.0.0', '<') === true ||
+	version_compare(App::version() ?? '6.0.0', '7.0.0', '>=') === true
 ) {
 	throw new Exception('Apple Music requires Kirby v4 or v5');
 }
