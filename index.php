@@ -24,10 +24,10 @@ use Scottboms\MusicKit\Utils;
 
 // shamelessly borrowed from distantnative/retour-for-kirby
 if (
-	version_compare(App::version() ?? '0.0.0', '4.0.1', '<') === true ||
-	version_compare(App::version() ?? '0.0.0', '6.0.0', '>=') === true
+	version_compare(App::version() ?? '0.0.0', '6.0.0', '<') === true ||
+	version_compare(App::version() ?? '0.0.0', '7.0.0', '>=') === true
 ) {
-	throw new Exception('Apple Music requires Kirby v4 or v5');
+	throw new Exception('Apple Music requires Kirby v6');
 }
 
 Kirby::plugin('scottboms/applemusic', [
@@ -159,7 +159,7 @@ Kirby::plugin('scottboms/applemusic', [
 	],
 
 	'info' => [
-		'version'  => '2.4.0',
+		'version'  => '6.0.0',
 		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
 		'license'  => 'MIT',
 		'authors'  => [[ 'name' => 'Scott Boms' ]],

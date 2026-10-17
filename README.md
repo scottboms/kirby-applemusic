@@ -147,8 +147,7 @@ If using the API, a snippet is included to handle displaying a customizable grid
 
 ## Compatibility
 
-* Kirby 4.x
-* Kirby 5.x
+* Kirby 6.0 (Plugin version 6.x)
 
 
 ## Disclaimer
