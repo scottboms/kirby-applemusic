@@ -5,9 +5,9 @@ import MusicKitHistory from "./components/MusicKitHistory.vue";
 import MusicKitSong    from "./components/MusicKitSong.vue";
 import MusicKitAlbum   from "./components/MusicKitAlbum.vue";
 
-import { icons }       from "./icons.js";
+import { icons } from "./icons.js";
 
-panel.plugin("scottboms/kirby-applemusic", {
+panel.plugin("scottboms/applemusic", {
 	icons,
 	components: {
 		"k-musickit-config-view": MusicKitConfig,

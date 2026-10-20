@@ -4,62 +4,64 @@
 			<k-header class="k-site-view-header">
 				{{ headerTitle }}
 
-				<k-button-group slot="buttons">
-					<k-button
-						variant="filled"
-						theme="blue-icon"
-						icon="document"
-						size="xs"
-						link="https://github.com/scottboms/kirby-applemusic/blob/main/README.md"
-						target="_blank"
-						responsive="true"
-						text="Setup Guide"
-					/>
+				<template #buttons>
+					<k-button-group>
+						<k-button
+							variant="filled"
+							theme="blue-icon"
+							icon="document"
+							size="xs"
+							link="https://github.com/scottboms/kirby-applemusic/blob/main/README.md"
+							target="_blank"
+							responsive="true"
+							text="Setup Guide"
+						/>
 
-					<k-button v-if="hasToken"
-						:disabled="busy"
-						variant="filled"
-						icon="shred"
-						size="xs"
-						responsive="true"
-						text="Clear Covers"
-						@click="clearCachedCovers"
-					/>
+						<k-button v-if="connected"
+							:disabled="busy"
+							variant="filled"
+							icon="shred"
+							size="xs"
+							responsive="true"
+							text="Clear Covers"
+							@click="clearCachedCovers"
+						/>
 
-					<k-button v-if="!hasToken"
-						:disabled="busy"
-						variant="filled"
-						theme="green-icon"
-						icon="open"
-						size="xs"
-						@click="redirectAuth">
-							{{ hasToken ? 'Re-authorize Apple Music' : 'Authorize Apple Music' }}
-					</k-button>
+						<k-button v-if="!connected"
+							:disabled="busy"
+							variant="filled"
+							theme="green-icon"
+							icon="open"
+							size="xs"
+							text="Authorize Apple Music"
+							@click="redirectAuth"
+						/>
 
-					<k-button v-if="hasToken"
-						:disabled="busy"
-						variant="filled"
-						icon="reset-token"
-						text="Reset Token"
-						size="xs"
-						title="Reset the Cached Token"
-						@click="refreshDevToken"
-					/>
+						<k-button v-if="connected"
+							:disabled="busy"
+							variant="filled"
+							icon="reset-token"
+							text="Reset Token"
+							size="xs"
+							title="Reset the Cached Token"
+							@click="refreshDevToken"
+						/>
 
-					<k-button v-if="hasToken"
-						:disabled="busy"
-						variant="filled"
-						theme="red-icon"
-						icon="logout"
-						text="Disconnect"
-						size="xs"
-						title="Delete the Saved Token"
-						@click="disconnect"
-					/>
-				</k-button-group>
+						<k-button v-if="connected"
+							:disabled="busy"
+							variant="filled"
+							theme="red-icon"
+							icon="logout"
+							text="Disconnect"
+							size="xs"
+							title="Delete the Saved Token"
+							@click="disconnect"
+						/>
+					</k-button-group>
+				</template>
 			</k-header>
 
-			<k-box v-if="!hasToken" theme="positive" style="margin-bottom: .5rem" icon="settings">
+			<k-box v-if="!connected" theme="positive" style="margin-bottom: .5rem" icon="settings">
 				Your configuration is ready to connect to your Apple Music account.
 			</k-box>
 
@@ -72,13 +74,13 @@
 			</k-section>
 
 			<!-- conditionally visible: only when token is present -->
-			<template v-if="hasToken">
+			<template v-if="connected">
 				<k-section>
 					<k-box icon="search" theme="white" style="margin-bottom: var(--spacing-1)">
 						<k-select-field
 							:value="searchType"
 							:options="searchTypeOptions"
-							:disabled="!hasToken"
+							:disabled="!connected"
 							icon="angle-down"
 							size="tiny"
 							@input="onSearchTypeChange"
@@ -87,7 +89,7 @@
 
 						<k-search-input
 							:value="searchQuery"
-							:disabled="!hasToken"
+							:disabled="!connected"
 							:autofocus="true"
 							:placeholder="'Search Apple Music...'"
 							@input="onSearchInput"
@@ -109,7 +111,15 @@
 				</k-section>
 
 				<k-section label="Recently Played Tracks">
-					<k-button slot="options" size="xs" variant="filled" icon="refresh" @click="fetchRecent()" />
+					<template #options>
+						<k-button
+							size="xs"
+							variant="filled"
+							icon="refresh"
+							:disabled="loading"
+							@click="fetchRecent()"
+        		/>
+					</template>
 
 					<k-box v-if="error" theme="negative">{{ error }}</k-box>
 					<k-box v-else-if="loading" icon="loader">Loading...</k-box>
@@ -156,6 +166,7 @@ export default {
 
 	data() {
 		return {
+			connected: this.hasToken,
 			busy: false,
 			msg: this.hasToken ? 'Token saved.' : 'Not connected yet.',
 			items: [],
@@ -179,36 +190,38 @@ export default {
 	},
 
 	created() {
-		if (this.hasToken) {
+		if (this.connected) {
 			this.fetchStorefront();
 			this.fetchRecent();
 		}
 	},
 
 	watch: {
-		hasToken(newVal) {
-			if (newVal) {
+		hasToken(newValue) {
+			this.connected = newValue;
+		},
+
+		connected(newValue) {
+			if (newValue) {
 				this.fetchStorefront();
 				this.fetchRecent();
 			} else {
-				// if token removed (e.g., user revoked), clear ui
 				this.items = [];
 				this.error = null;
 				this.loading = false;
 				this.storefrontInfo = null;
-
-				// clear search ui too
 				this.searchQuery = '';
 				this.searchResults = [];
 				this.searching = false;
 				this.searchError = null;
 			}
 		}
+
 	},
 
 	computed: {
 		headerTitle() {
-			return this.hasToken
+			return this.connected
 			? 'Apple Music'
 			: 'Authorize Apple Music'
 		},
@@ -363,7 +376,7 @@ export default {
 				const res = await fetch('/applemusic/has-token', { credentials: 'same-origin' });
 				if (res.ok) {
 					const { hasToken } = await res.json();
-					this.hasToken = !!hasToken;
+					this.connected = !!hasToken;
 				}
 			} catch (e) {
 				console.warn('has-token check failed:', e);
@@ -573,7 +586,7 @@ export default {
 					if (data.ok) {
 						// console.log('Popup returned token (saved):', data);
 						this.notify('success', 'Connected — token saved');
-						this.hasToken = true;
+						this.connected = true;
 					} else {
 						console.error('Popup failed:', data.error, data.detail || '');
 						this.notify('warning', 'Authorization cancelled or failed');
@@ -595,6 +608,9 @@ export default {
 
 		// refresh token
 		async refreshDevToken() {
+			if (this.busy) return;
+			this.busy = true;
+
 			try {
 				const res = await fetch('/applemusic/dev-token/refresh', {
 					method: 'POST',
@@ -625,20 +641,22 @@ export default {
 				this.notify('success', 'Developer token refreshed');
 
 				// refresh dependent data so ui reflects the working state
-				if (this.hasToken) {
-					// if you show a storefront stat, reload it
-					this.fetchStorefront?.();
-					// and refresh the recent list
-					this.fetchRecent?.();
+				if (this.connected) {
+					this.fetchStorefront();
+					this.fetchRecent();
 				}
 			} catch (e) {
 				console.error('refreshDevToken failed:', e);
 				this.notify('error', `Could not refresh dev token: ${e.message || e}`);
+			} finally {
+				this.busy = false;
 			}
 		},
 
 		// disconnect apple music, delete token
 		async disconnect() {
+			if (this.busy) return;
+
 			try {
 				if (!confirm('Disconnect Apple Music for this Panel user?')) return;
 				this.busy = true;
@@ -662,7 +680,7 @@ export default {
 				});
 				if (!resp.ok) throw new Error('delete-token ' + resp.status);
 
-				this.hasToken = false;
+				this.connected = false;
 				this.notify('success', 'Disconnected — saved token removed');
 			} catch (e) {
 				console.error('disconnect() error:', e);
@@ -774,8 +792,8 @@ export default {
 				if (!res.ok || json?.ok === false) throw new Error(json?.error || `HTTP ${res.status}`);
 				this.notify('success', 'Cover cache cleared');
 			} catch (e) {
-				this.notify('error', 'Failed to clear covers')
-				console.log('error: ' . e?.message);
+				console.error('[MusicKit] Failed to clear covers:', e);
+				this.notify('error', 'Failed to clear covers');
 			} finally {
 				this.busy = false;
 			}

@@ -339,7 +339,7 @@ return [
 						'info'  => $year,
 						'attr'  => $attr,
 						'image' => $artThumb(A::get($attr, 'artwork')),
-						'link'  => Panel::url('applemusic/song/' . $id),
+						'link' => kirby()->panel()->url('applemusic/song/' . rawurlencode($id)),
 						'kind'  => 'songs',
 					];
 				};
@@ -359,7 +359,7 @@ return [
 						'info'  => $year,
 						'attr'  => $attr,
 						'image' => $artThumb(A::get($attr, 'artwork')),
-						'link'  => Panel::url('applemusic/album/' . $id),
+						'link' => kirby()->panel()->url('applemusic/album/' . rawurlencode($id)),
 						'kind'  => 'albums',
 					];
 				};

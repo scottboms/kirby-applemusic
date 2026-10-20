@@ -1,16 +1,17 @@
 name: Apple Music
 icon: album
 fields:
-	apple_music:
-		label: Embed or URL
-		type: textarea
-		buttons: false
-		size: medium
-	format:
-		label: Format
-		type: toggle
-		text:
-			- embed
-			- link
-		default: "embed"
-		help: "Set format type to link or embed"
+  apple_music:
+    label: Embed or URL
+    type: textarea
+    buttons: false
+    size: medium
+  format:
+    label: Format
+    type: select
+    options:
+      link: Apple Music URL
+      embed: Embed Code
+    default: link
+    width: 1/1
+    help: "Set format type to link or embed"

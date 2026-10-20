@@ -1,18 +1,34 @@
 <template>
 	<k-field class="k-applemusic-field" v-bind="$props">
-		<k-button icon="edit-line" size="xs" slot="options" variant="filled" @click="openDrawer">Edit...</k-button>
+		<template #options>
+			<k-button
+				icon="edit"
+				size="xs"
+				variant="filled"
+				:disabled="disabled"
+				@click="openDrawer"
+			>Edit...</k-button>
+		</template>
+
 		<div v-if="!hasContent" class="k-applemusic-empty">
-			<k-grid style="--columns: 1; gap: 0.5rem">
-				<k-empty :text="emptyText" icon="album" @click="openDrawer" />
-			</k-grid>
+			<k-empty
+				icon="album"
+				@click="openDrawer"
+			>{{ emptyText }}</k-empty>
 		</div>
-		<div v-html="previewHtml" class="k-applemusic-preview" />
+
+		<div
+			v-if="hasContent"
+			class="k-applemusic-preview"
+			v-html="previewHtml"
+		/>
 	</k-field>
 </template>
 
 <script>
 export default {
 	extends: "k-field",
+
 	props: {
 		value: String,
 		emptyText: {
@@ -24,9 +40,10 @@ export default {
 			default: 'embed'
 		}
 	},
+
 	computed: {
 		hasContent() {
-			return this.value && this.value.trim() !== '';
+			return typeof this.value === 'string' && this.value.trim() !== '';
 		},
 
 		previewHtml() {
@@ -47,6 +64,7 @@ export default {
 			return '';
 		}
 	},
+
 	methods: {
 		transformLinkToEmbedSrc(link) {
 			if (!link || typeof link !== 'string') return '';
@@ -59,7 +77,7 @@ export default {
 			const newValue = formData[this.name];
 
 			// format-specific validation
-			const isValid = (() => {
+			const isValid = newValue === '' || (() => {
 				if (this.format === 'embed') {
 					return typeof newValue === 'string' &&
 						newValue.includes('<iframe') &&
@@ -105,34 +123,25 @@ export default {
 		},
 
 		openDrawer() {
+			const isLink = this.format === 'link';
+
 			const fieldConfig = {
-				label: this.format === 'link' ? 'Apple Music URL' : 'Embed Code',
-				type: this.format === 'link' ? 'url' : 'textarea',
-				icon: this.icon === 'link' ? 'link' : 'code',
+				label: isLink ? 'Apple Music URL' : 'Embed Code',
+				type: isLink ? 'url' : 'textarea',
+				icon: isLink ? 'link' : 'code',
 				spellcheck: false,
 				autofocus: true,
-				help: this.help  || (
-					this.format === 'link' 
-					? 'Paste an Apple Music URL like https://music.apple.com...'
-					: 'Paste the embed code (iframe) for a album, song, or playlist from Apple Music.'
+				help: this.help || (
+					isLink
+					? 'Paste an Apple Music URL like https://music.apple.com/...'
+					: 'Paste the iframe embed code for an album, song, or playlist from Apple Music.'
 				)
 			};
-			
-			if (this.format !== 'link') {
-				// only apply textarea-specific options
+
+			if (!isLink) {
 				fieldConfig.font = 'monospace';
 				fieldConfig.buttons = false;
 				fieldConfig.size = 'medium';
-
-				// validate that a proper <iframe> embed
-				fieldConfig.validate = (input) => {
-					const isValid = 
-						typeof input === 'string' && 
-						input.includes('<iframe') && 
-						input.includes('embed.music.apple.com');
-
-					return isValid || 'Please paste valid Apple Music embed code.';
-				}
 			}
 
 			this.$panel.drawer.open({
@@ -140,11 +149,11 @@ export default {
 				props: {
 					icon: 'album',
 					title: this.label || 'Apple Music Embed',
-					value: {
-						[this.name]: this.value
-					},
 					fields: {
 						[this.name]: fieldConfig
+					},
+					value: {
+						[this.name]: this.value || ''
 					}
 				},
 				on: {

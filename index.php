@@ -11,8 +11,9 @@
 **/
 
 @include_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/fields/AppleMusicField.php';
 
-use Kirby\Cms\App;
+use Kirby\Cms\App as Kirby;
 use Firebase\JWT\JWT;
 use Kirby\Http\Remote;
 use Kirby\Http\Response;
@@ -21,16 +22,24 @@ use Kirby\Filesystem\F;
 use Scottboms\MusicKit\MusicKit;
 use Scottboms\MusicKit\Auth;
 use Scottboms\MusicKit\Utils;
+use Scottboms\AppleMusic\AppleMusicField;
 
-// shamelessly borrowed from distantnative/retour-for-kirby
+$version = Kirby::version() ?? '0.0.0';
 if (
-	version_compare(App::version() ?? '0.0.0', '6.0.0', '<') === true ||
-	version_compare(App::version() ?? '0.0.0', '7.0.0', '>=') === true
+    version_compare($version, '6.0.0-beta.1', '<') ||
+    version_compare($version, '7.0.0', '>=')
 ) {
-	throw new Exception('Apple Music requires Kirby v6');
+    throw new Exception('Apple Music requires Kirby 6');
 }
 
-Kirby::plugin('scottboms/applemusic', [
+Kirby::plugin('scottboms/applemusic',
+info: [
+	'homepage' => 'https://github.com/scottboms/kirby-applemusic',
+	'version'  => '6.0.0',
+	'license'  => 'MIT',
+	'authors'  => [[ 'name' => 'Scott Boms' ]],
+],
+extends: [
 	'options' => [
 		'format' => 'link',
 		'teamId' => null, // e.g. 'ABCDE12345'
@@ -50,21 +59,7 @@ Kirby::plugin('scottboms/applemusic', [
 	'routes' => require __DIR__.'/lib/routes.php',
 
 	'fields' => [
-		'applemusic' => [
-			'computed' => [
-				'format' => function () {
-					return option('scottboms.applemusic.format', 'embed');
-				}
-			],
-			'props' => [
-				'label' => function( $label = 'Apple Music Embed') {
-					return $label;
-				},
-				'help' => function( $help = null) {
-					return $help;
-				}
-			]
-		]
+		'applemusic' => AppleMusicField::class
 	],
 
 	'blocks' => [
@@ -157,11 +152,4 @@ Kirby::plugin('scottboms/applemusic', [
 		'blocks/applemusic' => __DIR__ . '/snippets/blocks/applemusic.php',
 		'recently-played'   => __DIR__ . '/snippets/recently-played.php',
 	],
-
-	'info' => [
-		'version'  => '6.0.0',
-		'homepage' => 'https://github.com/scottboms/kirby-applemusic',
-		'license'  => 'MIT',
-		'authors'  => [[ 'name' => 'Scott Boms' ]],
-	]
 ]);
