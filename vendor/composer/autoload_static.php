@@ -7,30 +7,30 @@ namespace Composer\Autoload;
 class ComposerStaticInit81d8d1702a716148db4aa356eb58db34
 {
     public static $prefixLengthsPsr4 = array (
-        'S' => 
+        'S' =>
         array (
             'Scottboms\\MusicKit\\' => 19,
         ),
-        'K' => 
+        'K' =>
         array (
             'Kirby\\' => 6,
         ),
-        'F' => 
+        'F' =>
         array (
             'Firebase\\JWT\\' => 13,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Scottboms\\MusicKit\\' => 
+        'Scottboms\\MusicKit\\' =>
         array (
             0 => __DIR__ . '/../..' . '/classes',
         ),
-        'Kirby\\' => 
+        'Kirby\\' =>
         array (
             0 => __DIR__ . '/..' . '/getkirby/composer-installer/src',
         ),
-        'Firebase\\JWT\\' => 
+        'Firebase\\JWT\\' =>
         array (
             0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
@@ -52,6 +52,7 @@ class ComposerStaticInit81d8d1702a716148db4aa356eb58db34
         'Kirby\\ComposerInstaller\\PluginInstaller' => __DIR__ . '/..' . '/getkirby/composer-installer/src/ComposerInstaller/PluginInstaller.php',
         'Scottboms\\MusicKit\\Auth' => __DIR__ . '/../..' . '/classes/Auth.php',
         'Scottboms\\MusicKit\\MusicKit' => __DIR__ . '/../..' . '/classes/MusicKit.php',
+        'Scottboms\\MusicKit\\Utils' => __DIR__ . '/../..' . '/classes/Utils.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

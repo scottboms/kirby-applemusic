@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
-        'name' => 'scottboms/kirby-applemusic',
+        'name' => 'scottboms/applemusic',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '3070eec630086610674561b8b50ea00fc2f9e88d',
+        'reference' => '96bed0334866615c55da99963685fe2b9487378e',
         'type' => 'kirby-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -28,10 +28,10 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'scottboms/kirby-applemusic' => array(
+        'scottboms/applemusic' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '3070eec630086610674561b8b50ea00fc2f9e88d',
+            'reference' => '96bed0334866615c55da99963685fe2b9487378e',
             'type' => 'kirby-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

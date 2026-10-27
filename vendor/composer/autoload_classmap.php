@@ -21,4 +21,5 @@ return array(
     'Kirby\\ComposerInstaller\\PluginInstaller' => $vendorDir . '/getkirby/composer-installer/src/ComposerInstaller/PluginInstaller.php',
     'Scottboms\\MusicKit\\Auth' => $baseDir . '/classes/Auth.php',
     'Scottboms\\MusicKit\\MusicKit' => $baseDir . '/classes/MusicKit.php',
+    'Scottboms\\MusicKit\\Utils' => $baseDir . '/classes/Utils.php',
 );
