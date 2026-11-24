@@ -21,6 +21,7 @@
 	<script>
 	const urlParams = new URLSearchParams(window.location.search);
 	const returnTo = urlParams.get('returnTo');
+	const csrfToken = {{csrfJson}};
 	const statusBox = () => document.getElementById('status');
 
 	function log(...args) {
@@ -103,7 +104,10 @@
 
 			const resp = await fetch('/applemusic/store-user-token', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...(csrfToken ? { 'X-CSRF': csrfToken } : {})
+				},
 				credentials: 'same-origin',
 				body: JSON.stringify({ token: mut })
 			});

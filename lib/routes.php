@@ -107,6 +107,9 @@ return [
 			if (!$user = kirby()->user()) {
 				return Response::json(['status' => 'error', 'message' => 'Unauthorized'], 401);
 			}
+			if ($error = Auth::ensureCsrf()) {
+				return $error;
+			}
 
 			$req   = kirby()->request();
 			$token = null;
@@ -140,6 +143,12 @@ return [
 		'pattern' => 'applemusic/dev-token/refresh',
 		'method'  => 'POST',
 		'action'  => function () {
+			$user = Auth::ensurePanelUser();
+			if ($user instanceof Response) return $user;
+			if ($error = Auth::ensureCsrf()) {
+				return $error;
+			}
+
 			$opts = MusicKit::ensureOptions();
 			if ($opts instanceof Response) return $opts;
 
@@ -164,6 +173,9 @@ return [
 		'action'  => function () {
 			if (!$user = kirby()->user()) {
 				return Response::json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+			}
+			if ($error = Auth::ensureCsrf()) {
+				return $error;
 			}
 			if (!Auth::deleteToken($user->id())) {
 				return Response::json(['status' => 'error', 'message' => 'Failed to delete token'], 500);
@@ -398,6 +410,9 @@ return [
 			$user = kirby()->user();
 			if (!$user) {
 				return Response::json(['ok' => false, 'error' => 'Unauthorized'], 401);
+			}
+			if ($error = Auth::ensureCsrf()) {
+				return $error;
 			}
 
 			// admin only access

@@ -282,6 +282,25 @@ class Auth
 
 
 	/**
+	 * Validate the CSRF token for authenticated session requests.
+	 */
+	public static function ensureCsrf(): ?Response
+	{
+		$auth = kirby()->auth();
+
+		if ($auth->type() === 'session' && $auth->csrf() === false) {
+			return Response::json([
+				'status'  => 'error',
+				'message' => 'Invalid CSRF token',
+				'error'   => 'Invalid CSRF token',
+			], 403);
+		}
+
+		return null;
+	}
+
+
+	/**
 	 * must have stored music-user-token
 	 * @return String
 	 */
@@ -305,6 +324,7 @@ class Auth
 	public static function renderAuthPage(string $sf, string $appName, string $appBuild): Response
 	{
 		$sfLower = htmlspecialchars(strtolower($sf), ENT_QUOTES, 'UTF-8');
+		$csrfJson = json_encode(kirby()->auth()->csrfFromSession(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 		$path = dirname(__DIR__) . '/src/assets/auth.html';
 		if (!F::exists($path)) {
@@ -321,6 +341,7 @@ class Auth
 			'{{sfLower}}'      => $sfLower,
 			'{{appNameJson}}'  => json_encode($appName, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
 			'{{appBuildJson}}' => json_encode($appBuild, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+			'{{csrfJson}}'     => $csrfJson,
 		]);
 		return new Response(trim($html), 'text/html');
 	}

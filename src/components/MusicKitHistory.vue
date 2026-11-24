@@ -396,6 +396,14 @@ export default {
 	},
 
 	methods: {
+		csrfHeaders(headers = {}) {
+			const csrf = this.$panel?.system?.csrf;
+			return {
+				...headers,
+				...(csrf ? { 'X-CSRF': csrf } : {})
+			};
+		},
+
 		// search apple music catalog
 		onSearchInput(q) {
 			this.searchQuery = q || '';
@@ -615,7 +623,7 @@ export default {
 				const res = await fetch('/applemusic/dev-token/refresh', {
 					method: 'POST',
 					credentials: 'same-origin',
-					headers: { 'Accept': 'application/json' }
+					headers: this.csrfHeaders({ 'Accept': 'application/json' })
 				});
 
 				if (!res.ok) {
@@ -676,7 +684,8 @@ export default {
 				// remove the saved token
 				const resp = await fetch('/applemusic/delete-user-token', {
 					method: 'POST',
-					credentials: 'same-origin'
+					credentials: 'same-origin',
+					headers: this.csrfHeaders({ 'Accept': 'application/json' })
 				});
 				if (!resp.ok) throw new Error('delete-token ' + resp.status);
 
@@ -781,11 +790,7 @@ export default {
 				const res = await fetch('/applemusic/covers/clear', {
 					method: 'POST',
 					credentials: 'same-origin',
-					headers: {
-						'Accept': 'application/json',
-						// if you enforce csrf on post routes, include the token:
-						...(this.$system?.csrf ? { 'X-CSRF': this.$system.csrf } : {})
-					}
+					headers: this.csrfHeaders({ 'Accept': 'application/json' })
 				});
 
 				const json = await res.json();
